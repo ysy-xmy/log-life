@@ -4,8 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { User, Mail, Lock, ArrowLeft } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 export default function RegisterPage() {
@@ -91,136 +90,111 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {/* 返回按钮 */}
-        <div className="flex items-center">
-          <Link href="/" className="flex items-center text-gray-600 hover:text-gray-800">
-            <ArrowLeft className="h-5 w-5 mr-2" />
-            返回首页
-          </Link>
+    <div className="min-h-screen bg-white">
+      {/* 顶部导航栏 */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+        <button 
+          onClick={() => router.back()} 
+          className="flex items-center text-gray-600 hover:text-gray-800"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <h1 className="text-lg font-semibold text-gray-900">注册</h1>
+        <div className="w-5"></div>
+      </div>
+      
+      {/* 主要内容区域 */}
+      <div className="px-4 py-8">
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">创建账户</h2>
+          <p className="text-gray-600 text-sm">
+            开始记录你的生活日志
+          </p>
         </div>
         
-        <Card className="shadow-lg">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-gray-900">
-              创建账户
-            </CardTitle>
-            <p className="text-gray-600 mt-2">
-              开始记录你的生活日志
-            </p>
-          </CardHeader>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* 姓名 */}
+          <div>
+            <Input
+              id="name"
+              name="name"
+              type="text"
+              required
+              value={formData.name}
+              onChange={handleInputChange}
+              className="h-14 text-base border-0 border-b border-gray-200 rounded-none px-0 focus:border-gray-400 focus:ring-0"
+              placeholder="姓名"
+            />
+          </div>
           
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* 姓名 */}
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                  姓名
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    id="name"
-                    name="name"
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="pl-10"
-                    placeholder="请输入您的姓名"
-                  />
-                </div>
-              </div>
-              
-              {/* 邮箱 */}
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                  邮箱
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="pl-10"
-                    placeholder="请输入您的邮箱"
-                  />
-                </div>
-              </div>
-              
-              {/* 密码 */}
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                  密码
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    required
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    className="pl-10"
-                    placeholder="请输入密码（至少6位）"
-                  />
-                </div>
-              </div>
-              
-              {/* 确认密码 */}
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                  确认密码
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    required
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    className="pl-10"
-                    placeholder="请再次输入密码"
-                  />
-                </div>
-              </div>
-              
-              {/* 错误信息 */}
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <p className="text-red-600 text-sm">{error}</p>
-                </div>
-              )}
-              
-              {/* 提交按钮 */}
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gray-800 hover:bg-gray-700 text-white"
-              >
-                {loading ? '注册中...' : '创建账户'}
-              </Button>
-            </form>
-            
-            {/* 登录链接 */}
-            <div className="mt-6 text-center">
-              <p className="text-gray-600">
-                已有账户？{' '}
-                <Link href="/login" className="text-gray-800 hover:text-gray-600 font-medium">
-                  立即登录
-                </Link>
-              </p>
+          {/* 邮箱 */}
+          <div>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              required
+              value={formData.email}
+              onChange={handleInputChange}
+              className="h-14 text-base border-0 border-b border-gray-200 rounded-none px-0 focus:border-gray-400 focus:ring-0"
+              placeholder="邮箱"
+            />
+          </div>
+          
+          {/* 密码 */}
+          <div>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              required
+              value={formData.password}
+              onChange={handleInputChange}
+              className="h-14 text-base border-0 border-b border-gray-200 rounded-none px-0 focus:border-gray-400 focus:ring-0"
+              placeholder="密码（至少6位）"
+            />
+          </div>
+          
+          {/* 确认密码 */}
+          <div>
+            <Input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              required
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              className="h-14 text-base border-0 border-b border-gray-200 rounded-none px-0 focus:border-gray-400 focus:ring-0"
+              placeholder="确认密码"
+            />
+          </div>
+          
+          {/* 错误信息 */}
+          {error && (
+            <div className="bg-red-50 rounded-lg p-3">
+              <p className="text-red-600 text-sm">{error}</p>
             </div>
-          </CardContent>
-        </Card>
+          )}
+          
+          {/* 提交按钮 */}
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-gray-900 hover:bg-gray-800 text-white h-14 text-base font-medium rounded-lg"
+          >
+            {loading ? '注册中...' : '创建账户'}
+          </Button>
+        </form>
+        
+        {/* 登录链接 */}
+        <div className="mt-8 text-center">
+          <p className="text-gray-500 text-sm">
+            已有账户？{' '}
+            <Link href="/login" className="text-gray-900 font-medium">
+              立即登录
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   )
