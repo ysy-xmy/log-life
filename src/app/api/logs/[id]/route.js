@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { logService } from '@/lib/supabase'
+import { logService, accountingService } from '@/lib/supabase'
 
 // GET /api/logs/[id] - 获取单个日志
 export async function GET(request, { params }) {
@@ -52,7 +52,7 @@ export async function GET(request, { params }) {
     }
     
     // 获取日志列表并找到指定ID的日志
-    const logs = await logService.getLogs(userId)
+    const logs = await logService.getLogsWithAccounting(userId)
     const log = logs.find(log => log.id === id)
     
     if (!log) {
@@ -88,7 +88,7 @@ export async function PUT(request, { params }) {
   try {
     const { id } = params
     const body = await request.json()
-    const { content, mood, images, title } = body
+    const { content, mood, images, title, accounting } = body
     
     if (!id) {
       return NextResponse.json(
@@ -146,12 +146,54 @@ export async function PUT(request, { params }) {
       )
     }
     
+    // 获取当前日志信息
+    const logs = await logService.getLogsWithAccounting(userId)
+    const currentLog = logs.find(log => log.id === id)
+    
+    if (!currentLog) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: '日志不存在' 
+        },
+        { status: 404 }
+      )
+    }
+    
+    // 处理记账信息
+    let accountingId = currentLog.accounting_id
+    
+    if (accounting && accounting.enabled && accounting.amount && accounting.category) {
+      // 需要创建或更新记账记录
+      const accountingData = {
+        type: accounting.type,
+        amount: parseFloat(accounting.amount),
+        category: accounting.category,
+        description: accounting.description || content.trim(),
+        date: accounting.date || new Date().toISOString().split('T')[0]
+      }
+      
+      if (currentLog.accounting_id) {
+        // 更新现有记账记录
+        await accountingService.updateAccountingRecord(currentLog.accounting_id, accountingData)
+      } else {
+        // 创建新的记账记录
+        const newAccounting = await accountingService.createAccountingRecord(userId, accountingData)
+        accountingId = newAccounting.id
+      }
+    } else if (currentLog.accounting_id) {
+      // 如果原来有记账记录但现在不需要了，删除记账记录
+      await accountingService.deleteAccountingRecord(currentLog.accounting_id)
+      accountingId = null
+    }
+    
     // 准备更新数据
     const updateData = {
       title: title || content.slice(0, 50) + (content.length > 50 ? '...' : ''),
       content: content.trim(),
       mood: mood || null,
       images: images || [],
+      accounting_id: accountingId,
       updated_at: new Date().toISOString()
     }
     

@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, Edit, Trash2, Image as ImageIcon, Heart, ChevronDown, ChevronUp } from "lucide-react"
+import { Calendar, Edit, Trash2, Image as ImageIcon, Heart, ChevronDown, ChevronUp, Plus, Minus, DollarSign } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { MOOD_TAGS } from "@/lib/data"
+import { MOOD_TAGS, ACCOUNTING_CATEGORIES } from "@/lib/data"
 import { formatDate, formatTime } from "@/lib/data"
 import { logsApi } from "@/lib/api-client"
 import { useAuth } from "@/lib/auth-context"
@@ -101,6 +101,12 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
 
   const getMoodInfo = (moodId) => {
     return MOOD_TAGS.find(mood => mood.id === moodId) || { name: moodId, emoji: '😊', color: 'bg-gray-100 text-gray-800' }
+  }
+
+  // 获取记账类别信息
+  const getAccountingCategoryInfo = (type, categoryId) => {
+    const categories = type === 'income' ? ACCOUNTING_CATEGORIES.income : ACCOUNTING_CATEGORIES.expense
+    return categories.find(cat => cat.id === categoryId) || { name: categoryId, icon: '💰' }
   }
 
   // 解析心情数据，支持单个心情ID或心情数组
@@ -288,7 +294,19 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
                   </div>
                   <div className="flex space-x-1">
                     <button
-                      onClick={() => handleDelete(log.id)}
+                      onClick={(e) => {
+                        e.stopPropagation() // 阻止事件冒泡到卡片点击
+                        onEdit && onEdit(log)
+                      }}
+                      className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation() // 阻止事件冒泡到卡片点击
+                        handleDelete(log.id)
+                      }}
                       className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -314,9 +332,10 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
                   </div>
                 )}
 
-                {/* 图片预览 */}
-                {log.images && log.images.length > 0 && (
-                  <div className="relative">
+                {/* 图片预览和记账信息 */}
+                <div className="flex justify-between items-end">
+                  {/* 图片预览 */}
+                  {log.images && log.images.length > 0 && (
                     <div className="flex items-center gap-2">
                       <img
                         src={getImageUrl(log.images[0])}
@@ -336,8 +355,29 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
                         </div>
                       )}
                     </div>
-                  </div>
-                )}
+                  )}
+                  
+                  {/* 记账信息 */}
+                  {log.accounting && (
+                    <div className="flex ml-auto items-center space-x-2 rounded-lg px-3 py-2">
+                      <div className={`p-1 rounded-full ${log.accounting.type === 'income' ? 'bg-green-100' : 'bg-red-100'}`}>
+                        {log.accounting.type === 'income' ? (
+                          <Plus className="h-3 w-3 text-green-600" />
+                        ) : (
+                          <Minus className="h-3 w-3 text-red-600" />
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-sm font-semibold ${log.accounting.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                          {log.accounting.type === 'income' ? '+' : '-'}¥{log.accounting.amount.toFixed(0)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {getAccountingCategoryInfo(log.accounting.type, log.accounting.category).name}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>

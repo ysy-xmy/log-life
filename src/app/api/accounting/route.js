@@ -1,11 +1,24 @@
 import { NextResponse } from 'next/server'
 import { accountingService } from '@/lib/supabase'
+import { extractAuthFromRequest } from '@/lib/auth-utils'
 
 // GET /api/accounting - 获取记账记录列表
 export async function GET(request) {
   try {
+    // 验证用户身份
+    const authResult = extractAuthFromRequest(request)
+    if (authResult.error) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: authResult.error 
+        },
+        { status: authResult.status }
+      )
+    }
+    
+    const { userId } = authResult
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId') || '00000000-0000-0000-0000-000000000000'
     const year = searchParams.get('year')
     const month = searchParams.get('month')
     
@@ -40,6 +53,19 @@ export async function GET(request) {
 // POST /api/accounting - 创建记账记录
 export async function POST(request) {
   try {
+    // 验证用户身份
+    const authResult = extractAuthFromRequest(request)
+    if (authResult.error) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: authResult.error 
+        },
+        { status: authResult.status }
+      )
+    }
+    
+    const { userId } = authResult
     const body = await request.json()
     const { amount, category, description, type, date } = body
     
@@ -66,7 +92,7 @@ export async function POST(request) {
     
     // 准备记账数据
     const recordData = {
-      user_id: '00000000-0000-0000-0000-000000000000',
+      user_id: userId, // 使用认证的用户ID
       amount: parseFloat(amount),
       category,
       description: description || '',

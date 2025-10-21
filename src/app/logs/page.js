@@ -21,6 +21,8 @@ function LogsPageContent() {
   const logFormRef = useRef(null)
 
   const handleLogEdit = useCallback(async (log) => {
+    console.log('开始编辑日志:', log)
+    console.log('当前认证状态:', isAuthenticated())
     try {
       // 如果需要加载完整的日志数据
       if (typeof log === 'string' || log.id) {
@@ -47,7 +49,7 @@ function LogsPageContent() {
       const logId = typeof log === 'string' ? log : log.id
       router.push(`/logs?edit=${logId}`, { scroll: false })
     }
-  }, [router])
+  }, [router, isAuthenticated])
 
   // 处理URL参数中的编辑模式
   useEffect(() => {
@@ -104,6 +106,7 @@ function LogsPageContent() {
 
   // 如果未登录，重定向到登录页面
   if (!isAuthenticated()) {
+    console.log('用户未认证，重定向到登录页面')
     router.push('/login')
     return (
       <div className="flex justify-center items-center min-h-screen">

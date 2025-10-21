@@ -123,7 +123,8 @@ export default function LogView() {
 
   // 处理编辑
   const handleEdit = () => {
-    router.push(`/?edit=${log.id}`)
+    console.log('从详情页编辑日志:', log.id)
+    router.push(`/logs?edit=${log.id}`)
   }
 
   // 处理删除
@@ -132,7 +133,7 @@ export default function LogView() {
       try {
         const response = await logsApi.deleteLog(log.id)
         if (response.success) {
-          router.push('/')
+          router.push('/logs')
         } else {
           alert('删除失败：' + response.error)
         }
@@ -160,7 +161,7 @@ export default function LogView() {
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => router.push('/')}
+              onClick={() => router.push('/logs')}
             >
               <ArrowLeft className="h-5 w-5 mr-2" />
               返回
@@ -175,10 +176,10 @@ export default function LogView() {
             <div className="text-red-500 text-lg mb-2">加载失败</div>
             <div className="text-gray-500">{error}</div>
             <Button 
-              onClick={() => router.push('/')}
+              onClick={() => router.push('/logs')}
               className="mt-4"
             >
-              返回首页
+              返回日志列表
             </Button>
           </div>
         </div>
@@ -202,7 +203,7 @@ export default function LogView() {
           <Button 
             variant="ghost" 
             size="sm"
-            onClick={() => router.push('/')}
+            onClick={() => router.push('/logs')}
             className="hover:bg-gray-100"
           >
             <ArrowLeft className="h-5 w-5 mr-2" />

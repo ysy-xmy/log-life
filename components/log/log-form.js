@@ -80,11 +80,33 @@ const LogForm = forwardRef(function LogForm({ onSave, initialData = null }, ref)
       console.log('编辑日志 - 解析后心情数据:', parsedMoods)
       setMoods(parsedMoods)
       setImages(initialData.images || [])
+      
+      // 处理记账信息回显
+      if (initialData.accounting) {
+        console.log('编辑日志 - 记账信息:', initialData.accounting)
+        setHasAccounting(true)
+        setAccountingType(initialData.accounting.type || 'expense')
+        setAccountingAmount(initialData.accounting.amount?.toString() || "")
+        setAccountingCategory(initialData.accounting.category || "")
+        setAccountingNote(initialData.accounting.description || "")
+      } else {
+        // 重置记账信息
+        setHasAccounting(false)
+        setAccountingType('expense')
+        setAccountingAmount("")
+        setAccountingCategory("")
+        setAccountingNote("")
+      }
     } else {
       // 重置表单
       setContent("")
       setMoods([])
       setImages([])
+      setHasAccounting(false)
+      setAccountingType('expense')
+      setAccountingAmount("")
+      setAccountingCategory("")
+      setAccountingNote("")
     }
   }, [initialData])
 
@@ -272,6 +294,15 @@ const LogForm = forwardRef(function LogForm({ onSave, initialData = null }, ref)
         mood: moods.length > 0 ? moods : null, // 保存完整的心情数组
         images: images.map(img => img.url), // 直接保存base64字符串
         title: content.slice(0, 50) + (content.length > 50 ? '...' : ''), // 自动生成标题
+        // 如果有记账信息，添加到请求中
+        accounting: hasAccounting && accountingAmount && accountingCategory ? {
+          enabled: true,
+          type: accountingType,
+          amount: accountingAmount,
+          category: accountingCategory,
+          description: accountingNote.trim() || content.trim(),
+          date: new Date().toISOString().split('T')[0]
+        } : null
       }
 
       let savedLog
@@ -294,22 +325,6 @@ const LogForm = forwardRef(function LogForm({ onSave, initialData = null }, ref)
         }
       }
 
-      // 如果有记账，保存记账记录
-      if (hasAccounting && accountingAmount && accountingCategory) {
-        const recordData = {
-          type: accountingType,
-          amount: parseFloat(accountingAmount),
-          category: accountingCategory,
-          date: now.toISOString().split('T')[0],
-          description: accountingNote.trim() || content.trim(),
-        }
-
-        const response = await accountingApi.createRecord(recordData)
-        if (!response.success) {
-          console.error('保存记账记录失败:', response.error)
-        }
-      }
-      
       // 调用父组件的保存回调
       if (onSave) {
         await onSave(savedLog)

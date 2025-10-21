@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Calculator, Save, Plus, Minus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,8 +8,12 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { ACCOUNTING_CATEGORIES, getTodayString, generateId } from "@/lib/data"
 import { accountingApi } from "@/lib/api-client"
+import { useAuth } from "@/lib/auth-context"
+import { useRouter } from "next/navigation"
 
 export default function AccountingForm({ onSave, initialData = null }) {
+  const { user, isAuthenticated, loading: authLoading } = useAuth()
+  const router = useRouter()
   const [type, setType] = useState(initialData?.type || 'expense')
   const [amount, setAmount] = useState(initialData?.amount || '')
   const [category, setCategory] = useState(initialData?.category || '')
@@ -17,9 +21,23 @@ export default function AccountingForm({ onSave, initialData = null }) {
   const [note, setNote] = useState(initialData?.note || '')
   const [isSaving, setIsSaving] = useState(false)
 
+  // 检查认证状态
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated()) {
+      router.push('/login')
+      return
+    }
+  }, [authLoading, isAuthenticated, router])
+
   const categories = type === 'income' ? ACCOUNTING_CATEGORIES.income : ACCOUNTING_CATEGORIES.expense
 
   const handleSave = async () => {
+    // 确保用户已认证
+    if (!isAuthenticated()) {
+      console.warn('用户未认证，无法保存数据')
+      return
+    }
+    
     if (!amount || !category) {
       alert("请填写金额和类别")
       return
@@ -61,6 +79,11 @@ export default function AccountingForm({ onSave, initialData = null }) {
       
     } catch (error) {
       console.error('保存记录失败:', error)
+      // 如果是认证错误，重定向到登录页
+      if (error.message.includes('认证') || error.message.includes('401')) {
+        router.push('/login')
+        return
+      }
       alert(`保存失败: ${error.message}`)
     } finally {
       setIsSaving(false)

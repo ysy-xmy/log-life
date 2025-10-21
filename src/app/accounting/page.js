@@ -1,15 +1,27 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import AccountingForm from "@/components/accounting/accounting-form"
 import AccountingList from "@/components/accounting/accounting-list"
 import { Calculator, Plus, List, ArrowLeft } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
+import { useRouter } from "next/navigation"
 
 export default function AccountingPage() {
+  const { user, isAuthenticated, loading: authLoading } = useAuth()
+  const router = useRouter()
   const [editingRecord, setEditingRecord] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [newRecord, setNewRecord] = useState(null)
   const [currentView, setCurrentView] = useState('list') // 'list' 或 'add'
+
+  // 检查认证状态
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated()) {
+      router.push('/login')
+      return
+    }
+  }, [authLoading, isAuthenticated, router])
 
   const handleRecordSave = (savedRecord) => {
     setEditingRecord(null)
@@ -38,59 +50,71 @@ export default function AccountingPage() {
 
   return (
     <div className="bg-gray-50">
-      {/* 顶部导航 */}
-      <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 z-40">
-        <div className="flex items-center justify-between">
-          {currentView === 'add' ? (
-            <button
-              onClick={handleBackToList}
-              className="flex items-center space-x-2 text-gray-600 hover:text-gray-800"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span className="text-lg font-medium">返回</span>
-            </button>
-          ) : (
-            <h1 className="text-xl font-semibold text-gray-800">记账</h1>
-          )}
-          
-          {currentView === 'list' && (
-            <button
-              onClick={handleAddNew}
-              className="flex items-center space-x-2 bg-gray-800 text-white px-4 py-2 rounded-full hover:bg-gray-700 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              <span>记账</span>
-            </button>
-          )}
+      {/* 如果正在加载认证状态，显示加载中 */}
+      {authLoading ? (
+        <div className="flex justify-center items-center h-screen">
+          <div className="text-gray-500">验证身份中...</div>
         </div>
-      </div>
-
-      {/* 主要内容 */}
-      <div className="px-4 py-4">
-        {currentView === 'list' ? (
-          <AccountingList 
-            refreshTrigger={refreshKey}
-            newRecord={newRecord}
-            onEdit={handleRecordEdit}
-            onDelete={handleRecordDelete}
-          />
-        ) : (
-          <div className="space-y-4">
-            <div className="bg-white rounded-2xl p-4 shadow-sm">
-              <div className="flex items-center space-x-2 mb-4">
-                <Calculator className="h-5 w-5 text-gray-500" />
-                <h2 className="text-lg font-medium text-gray-800">
-                  {editingRecord ? '编辑记录' : '添加记录'}
-                </h2>
-              </div>
-              <AccountingForm 
-                onSave={handleRecordSave}
-                initialData={editingRecord}
-              />
+      ) : !isAuthenticated() ? (
+        // 如果用户未认证，不渲染内容（会被重定向到登录页）
+        null
+      ) : (
+        <>
+          {/* 顶部导航 */}
+          <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 z-40">
+            <div className="flex items-center justify-between">
+              {currentView === 'add' ? (
+                <button
+                  onClick={handleBackToList}
+                  className="flex items-center space-x-2 text-gray-600 hover:text-gray-800"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                  <span className="text-lg font-medium">返回</span>
+                </button>
+              ) : (
+                <h1 className="text-xl font-semibold text-gray-800">记账</h1>
+              )}
+              
+              {currentView === 'list' && (
+                <button
+                  onClick={handleAddNew}
+                  className="flex items-center space-x-2 bg-gray-800 text-white px-4 py-2 rounded-full hover:bg-gray-700 transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>记账</span>
+                </button>
+              )}
             </div>
           </div>
-        )}
-      </div>
+
+          {/* 主要内容 */}
+          <div className="px-4 py-4">
+            {currentView === 'list' ? (
+              <AccountingList 
+                refreshTrigger={refreshKey}
+                newRecord={newRecord}
+                onEdit={handleRecordEdit}
+                onDelete={handleRecordDelete}
+              />
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-white rounded-2xl p-4 shadow-sm">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Calculator className="h-5 w-5 text-gray-500" />
+                    <h2 className="text-lg font-medium text-gray-800">
+                      {editingRecord ? '编辑记录' : '添加记录'}
+                    </h2>
+                  </div>
+                  <AccountingForm 
+                    onSave={handleRecordSave}
+                    initialData={editingRecord}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }

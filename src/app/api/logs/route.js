@@ -1,49 +1,28 @@
 import { NextResponse } from 'next/server'
-import { logService } from '@/lib/supabase'
+import { logService, accountingService } from '@/lib/supabase'
+import { extractAuthFromRequest } from '@/lib/auth-utils'
 
 // GET /api/logs - 获取日志列表
 export async function GET(request) {
   try {
+    // 验证用户身份
+    const authResult = extractAuthFromRequest(request)
+    if (authResult.error) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: authResult.error 
+        },
+        { status: authResult.status }
+      )
+    }
+    
+    const { userId } = authResult
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search') || ''
     
-    // 从认证头获取用户ID
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: '需要登录' 
-        },
-        { status: 401 }
-      )
-    }
-    
-    const token = authHeader.substring(7)
-    let userId
-    
-    try {
-      // 解析token，格式为 userId:timestamp
-      const decoded = Buffer.from(token, 'base64').toString('utf-8')
-      const [parsedUserId] = decoded.split(':')
-      userId = parsedUserId
-    } catch (error) {
-      // 如果解析失败，可能是直接的userId
-      userId = token
-    }
-    
-    if (!userId) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: '无效的认证令牌' 
-        },
-        { status: 401 }
-      )
-    }
-    
-    // 获取所有日志
-    const logs = await logService.getLogs(userId)
+    // 获取带记账信息的日志
+    const logs = await logService.getLogsWithAccounting(userId)
     
     // 如果有搜索条件，进行过滤
     let filteredLogs = logs
@@ -90,43 +69,21 @@ export async function GET(request) {
 // POST /api/logs - 创建新日志
 export async function POST(request) {
   try {
+    // 验证用户身份
+    const authResult = extractAuthFromRequest(request)
+    if (authResult.error) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: authResult.error 
+        },
+        { status: authResult.status }
+      )
+    }
+    
+    const { userId } = authResult
     const body = await request.json()
-    const { content, mood, images, title } = body
-    
-    // 从认证头获取用户ID
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: '需要登录' 
-        },
-        { status: 401 }
-      )
-    }
-    
-    const token = authHeader.substring(7)
-    let userId
-    
-    try {
-      // 解析token，格式为 userId:timestamp
-      const decoded = Buffer.from(token, 'base64').toString('utf-8')
-      const [parsedUserId] = decoded.split(':')
-      userId = parsedUserId
-    } catch (error) {
-      // 如果解析失败，可能是直接的userId
-      userId = token
-    }
-    
-    if (!userId) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: '无效的认证令牌' 
-        },
-        { status: 401 }
-      )
-    }
+    const { content, mood, images, title, accounting } = body
     
     // 验证必填字段
     if (!content || !content.trim()) {
@@ -150,13 +107,41 @@ export async function POST(request) {
       updated_at: new Date().toISOString()
     }
     
+    // 如果有记账信息，先创建记账记录
+    let accountingId = null
+    if (accounting && accounting.enabled && accounting.amount && accounting.category) {
+      try {
+        const accountingData = {
+          user_id: userId,
+          type: accounting.type || 'expense',
+          amount: parseFloat(accounting.amount),
+          category: accounting.category,
+          description: accounting.description || content.trim(),
+          date: accounting.date || new Date().toISOString().split('T')[0],
+        }
+        
+        const accountingRecord = await accountingService.createAccountingRecord(accountingData)
+        accountingId = accountingRecord.id
+        console.log('自动创建记账记录成功:', accountingRecord.id)
+      } catch (error) {
+        console.error('创建记账记录失败:', error)
+        // 记账失败不影响日志创建，继续执行
+      }
+    }
+    
+    // 将记账ID添加到日志数据中
+    if (accountingId) {
+      logData.accounting_id = accountingId
+    }
+    
     // 创建日志
     const newLog = await logService.createLog(logData)
     
     return NextResponse.json({
       success: true,
       data: newLog,
-      message: '日志创建成功'
+      message: '日志创建成功',
+      accountingId: accountingId // 返回记账ID供前端使用
     }, { status: 201 })
     
   } catch (error) {

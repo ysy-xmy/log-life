@@ -9,8 +9,12 @@ import { formatDate, formatTime } from "@/lib/data"
 import { accountingApi } from "@/lib/api-client"
 import { useCache } from "@/lib/cache-context"
 import { usePullRefresh } from "@/lib/use-pull-refresh"
+import { useAuth } from "@/lib/auth-context"
+import { useRouter } from "next/navigation"
 
 export default function AccountingList({ onEdit, onDelete, refreshTrigger, newRecord }) {
+  const { user, isAuthenticated, loading: authLoading } = useAuth()
+  const router = useRouter()
   const { getCachedData, setCachedData, shouldRefresh, addToCache, updateInCache, removeFromCache } = useCache()
   const [filterType, setFilterType] = useState('all')
   const [filterCategory, setFilterCategory] = useState('all')
@@ -20,6 +24,14 @@ export default function AccountingList({ onEdit, onDelete, refreshTrigger, newRe
   const [records, setRecords] = useState(cachedData.data || [])
   const [loading, setLoading] = useState(cachedData.loading || false)
 
+  // 检查认证状态
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated()) {
+      router.push('/login')
+      return
+    }
+  }, [authLoading, isAuthenticated, router])
+
   // 下拉刷新处理函数
   const handleRefresh = async () => {
     await loadRecords(true)
@@ -28,27 +40,30 @@ export default function AccountingList({ onEdit, onDelete, refreshTrigger, newRe
   const { containerRef, isRefreshing, refreshIndicator } = usePullRefresh(handleRefresh)
 
   useEffect(() => {
-    // 如果有缓存数据且不需要刷新，直接使用缓存
-    if (cachedData.data.length > 0 && !shouldRefresh('accounting')) {
-      setRecords(cachedData.data)
-      setLoading(false)
-      return
+    // 只有在用户已认证的情况下才加载数据
+    if (!authLoading && isAuthenticated()) {
+      // 如果有缓存数据且不需要刷新，直接使用缓存
+      if (cachedData.data.length > 0 && !shouldRefresh('accounting')) {
+        setRecords(cachedData.data)
+        setLoading(false)
+        return
+      }
+      
+      // 否则加载数据
+      loadRecords()
     }
-    
-    // 否则加载数据
-    loadRecords()
-  }, [])
+  }, [authLoading, isAuthenticated])
 
   // 当refreshTrigger变化时重新加载数据
   useEffect(() => {
-    if (refreshTrigger > 0) {
+    if (refreshTrigger > 0 && !authLoading && isAuthenticated()) {
       loadRecords(true)
     }
-  }, [refreshTrigger])
+  }, [refreshTrigger, authLoading, isAuthenticated])
 
   // 当有新记录时，直接添加到缓存和本地状态
   useEffect(() => {
-    if (newRecord) {
+    if (newRecord && !authLoading && isAuthenticated()) {
       addToCache('accounting', newRecord)
       setRecords(prevRecords => {
         // 检查是否已存在相同ID的记录，避免重复添加
@@ -59,9 +74,15 @@ export default function AccountingList({ onEdit, onDelete, refreshTrigger, newRe
         return [newRecord, ...prevRecords]
       })
     }
-  }, [newRecord, addToCache])
+  }, [newRecord, addToCache, authLoading, isAuthenticated])
 
   const loadRecords = async (forceRefresh = false) => {
+    // 确保用户已认证
+    if (!isAuthenticated()) {
+      console.warn('用户未认证，无法加载数据')
+      return
+    }
+    
     try {
       setLoading(true)
       setCachedData('accounting', [], true) // 设置loading状态
@@ -73,6 +94,11 @@ export default function AccountingList({ onEdit, onDelete, refreshTrigger, newRe
       setCachedData('accounting', data, false) // 更新缓存
     } catch (error) {
       console.error('加载记录失败:', error)
+      // 如果是认证错误，重定向到登录页
+      if (error.message.includes('认证') || error.message.includes('401')) {
+        router.push('/login')
+        return
+      }
       alert(`加载记录失败: ${error.message}`)
     } finally {
       setLoading(false)
@@ -89,6 +115,11 @@ export default function AccountingList({ onEdit, onDelete, refreshTrigger, newRe
         if (onDelete) onDelete(recordId)
       } catch (error) {
         console.error('删除记录失败:', error)
+        // 如果是认证错误，重定向到登录页
+        if (error.message.includes('认证') || error.message.includes('401')) {
+          router.push('/login')
+          return
+        }
         alert(`删除失败: ${error.message}`)
       }
     }
@@ -137,6 +168,20 @@ export default function AccountingList({ onEdit, onDelete, refreshTrigger, newRe
 
   // 获取分组后的记录
   const groupedRecords = groupRecordsByDate(filteredRecords)
+
+  // 如果正在加载认证状态，显示加载中
+  if (authLoading) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <div className="text-gray-500">验证身份中...</div>
+      </div>
+    )
+  }
+
+  // 如果用户未认证，不渲染内容（会被重定向到登录页）
+  if (!isAuthenticated()) {
+    return null
+  }
 
   if (loading) {
     return (
