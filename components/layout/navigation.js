@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 import { 
   BookOpen, 
   Calculator, 
@@ -39,7 +40,7 @@ const navigationItems = [
   },
 ]
 
-export default function Navigation() {
+function NavigationContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
@@ -96,5 +97,13 @@ export default function Navigation() {
         </div>
       </div>
     </nav>
+  )
+}
+
+export default function Navigation() {
+  return (
+    <Suspense fallback={null}>
+      <NavigationContent />
+    </Suspense>
   )
 }

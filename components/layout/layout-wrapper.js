@@ -1,9 +1,10 @@
 "use client"
 
 import { usePathname, useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 import { cn } from "@/lib/utils"
 
-export default function LayoutWrapper({ children }) {
+function LayoutWrapperContent({ children }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
@@ -38,5 +39,21 @@ export default function LayoutWrapper({ children }) {
         {children}
       </main>
     </div>
+  )
+}
+
+export default function LayoutWrapper({ children }) {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white">
+        <main className="max-w-md mx-auto bg-gray-50 min-h-screen pb-16">
+          <div className="flex justify-center items-center min-h-screen">
+            <div className="text-gray-500">加载中...</div>
+          </div>
+        </main>
+      </div>
+    }>
+      <LayoutWrapperContent>{children}</LayoutWrapperContent>
+    </Suspense>
   )
 }

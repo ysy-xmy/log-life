@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect, useCallback, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import LogForm from "@/components/log/log-form"
@@ -9,7 +9,7 @@ import { Plus, X, Search, User } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import Link from "next/link"
 
-export default function LogsPage() {
+function LogsPageContent() {
   const { user, isAuthenticated, loading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -194,5 +194,17 @@ export default function LogsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function LogsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-gray-500">加载中...</div>
+      </div>
+    }>
+      <LogsPageContent />
+    </Suspense>
   )
 }
