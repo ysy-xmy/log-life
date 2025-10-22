@@ -112,7 +112,12 @@ export default function RegisterPage() {
           </p>
         </div>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
+          {/* 隐藏的假输入框，用于防止自动填充 */}
+          <div style={{ display: 'none' }}>
+            <input type="text" name="fake-username" autoComplete="username" />
+            <input type="password" name="fake-password" autoComplete="current-password" />
+          </div>
           {/* 姓名 */}
           <div>
             <Input
@@ -120,6 +125,10 @@ export default function RegisterPage() {
               name="name"
               type="text"
               required
+              autoComplete="new-password"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
               value={formData.name}
               onChange={handleInputChange}
               className="h-14 text-base border-0 border-b border-gray-200 rounded-none px-0 focus:border-gray-400 focus:ring-0"
@@ -134,6 +143,10 @@ export default function RegisterPage() {
               name="email"
               type="email"
               required
+              autoComplete="new-password"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
               value={formData.email}
               onChange={handleInputChange}
               className="h-14 text-base border-0 border-b border-gray-200 rounded-none px-0 focus:border-gray-400 focus:ring-0"
@@ -148,6 +161,10 @@ export default function RegisterPage() {
               name="password"
               type="password"
               required
+              autoComplete="new-password"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
               value={formData.password}
               onChange={handleInputChange}
               className="h-14 text-base border-0 border-b border-gray-200 rounded-none px-0 focus:border-gray-400 focus:ring-0"
@@ -162,6 +179,10 @@ export default function RegisterPage() {
               name="confirmPassword"
               type="password"
               required
+              autoComplete="new-password"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
               value={formData.confirmPassword}
               onChange={handleInputChange}
               className="h-14 text-base border-0 border-b border-gray-200 rounded-none px-0 focus:border-gray-400 focus:ring-0"

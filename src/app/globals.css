@@ -49,10 +49,24 @@ html, body {
   overscroll-behavior: none;
 }
 
-/* 移动端视口高度适配 */
-.mobile-viewport {
-  height: 100vh;
-  height: -webkit-fill-available;
+/* 防止自动填充的样式 */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px transparent inset !important;
+  -webkit-text-fill-color: inherit !important;
+  background-color: transparent !important;
+  background-clip: content-box !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+/* 防止自动填充的黄色背景 */
+input[type="email"]:-webkit-autofill,
+input[type="password"]:-webkit-autofill,
+input[type="text"]:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px white inset !important;
+  -webkit-text-fill-color: #374151 !important;
 }
 
 /* 文本截断样式 */

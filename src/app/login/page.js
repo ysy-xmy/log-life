@@ -104,7 +104,13 @@ function LoginPageContent() {
           </p>
         </div>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
+          {/* 隐藏的假输入框，用于防止自动填充 */}
+          <div style={{ display: 'none' }}>
+            <input type="text" name="fake-username" autoComplete="username" />
+            <input type="password" name="fake-password" autoComplete="current-password" />
+          </div>
+          
           {/* 邮箱 */}
           <div>
             <Input
@@ -112,9 +118,19 @@ function LoginPageContent() {
               name="email"
               type="email"
               required
+              autoComplete="new-password"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
               value={formData.email}
               onChange={handleInputChange}
-              className="h-14 text-base border-0 border-b border-gray-200 rounded-none px-0 focus:border-gray-400 focus:ring-0"
+              style={{
+                border: 'none',
+                boxShadow: 'none',
+                borderBottom: '1px solid #e0e0e0',
+                backgroundColor: 'transparent',
+              }}
+              className="h-14 text-base border-0 border-b-gray-200 rounded-none px-2"
               placeholder="邮箱"
             />
           </div>
@@ -125,10 +141,20 @@ function LoginPageContent() {
               id="password"
               name="password"
               type="password"
+              autoComplete="new-password"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
               required
               value={formData.password}
               onChange={handleInputChange}
-              className="h-14 text-base border-0 border-b border-gray-200 rounded-none px-0 focus:border-gray-400 focus:ring-0"
+              style={{
+                border: 'none',
+                boxShadow: 'none',
+                borderBottom: '1px solid #e0e0e0',
+                backgroundColor: 'transparent',
+              }}
+              className="h-14 text-base rounded-none px-2"
               placeholder="密码"
             />
           </div>

@@ -131,7 +131,7 @@ export default function ProfilePage() {
   // 如果未登录，显示欢迎页面
   if (!isAuthenticated()) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="h-full margin-auto flex items-center justify-center px-4">
         <div className="text-center max-w-md">
           <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <User className="h-10 w-10 text-gray-400" />
