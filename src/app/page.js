@@ -105,14 +105,6 @@ export default function Home() {
     return [moodData]
   }
 
-  // 如果正在加载认证状态
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-gray-500">加载中...</div>
-      </div>
-    )
-  }
 
   // 如果未登录，重定向到登录页面
   if (!isAuthenticated()) {

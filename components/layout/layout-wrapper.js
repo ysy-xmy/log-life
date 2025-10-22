@@ -31,10 +31,9 @@ function LayoutWrapperContent({ children }) {
   const hideNavigation = shouldHideNavigation()
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="h-screen bg-white flex flex-col">
       <main className={cn(
-        "max-w-md mx-auto bg-gray-50 min-h-screen",
-        !hideNavigation && "pb-16"
+        "w-full max-w-md mx-auto bg-gray-50 flex-1 overflow-y-auto"
       )}>
         {children}
       </main>
@@ -45,9 +44,9 @@ function LayoutWrapperContent({ children }) {
 export default function LayoutWrapper({ children }) {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-white">
-        <main className="max-w-md mx-auto bg-gray-50 min-h-screen pb-16">
-          <div className="flex justify-center items-center min-h-screen">
+      <div className="h-screen bg-white flex flex-col">
+        <main className="w-full max-w-md mx-auto bg-gray-50 flex-1 overflow-y-auto">
+          <div className="flex justify-center items-center h-full">
             <div className="text-gray-500">加载中...</div>
           </div>
         </main>

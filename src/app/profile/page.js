@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { User, Smartphone, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
+import { usePullRefresh } from "@/lib/use-pull-refresh"
 import Link from "next/link"
 
 export default function ProfilePage() {
@@ -15,6 +16,9 @@ export default function ProfilePage() {
     totalRecords: 0,
     joinDate: new Date().toISOString().split('T')[0]
   })
+
+  // 使用统一的 loading 管理
+  const { loadingIndicator } = usePullRefresh(() => {}, 100, "加载中...")
 
   useEffect(() => {
     if (isAuthenticated()) {
@@ -54,11 +58,7 @@ export default function ProfilePage() {
 
   // 如果正在加载认证状态
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-gray-500">加载中...</div>
-      </div>
-    )
+    return loadingIndicator
   }
 
   // 如果未登录，显示欢迎页面
