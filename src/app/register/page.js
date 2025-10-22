@@ -34,7 +34,7 @@ export default function RegisterPage() {
     
     // 验证表单
     if (!formData.name.trim()) {
-      setError('请输入姓名')
+      setError('请输入昵称')
       return
     }
     
@@ -118,7 +118,7 @@ export default function RegisterPage() {
             <input type="text" name="fake-username" autoComplete="username" />
             <input type="password" name="fake-password" autoComplete="current-password" />
           </div>
-          {/* 姓名 */}
+          {/* 昵称 */}
           <div>
             <Input
               id="name"
@@ -131,8 +131,14 @@ export default function RegisterPage() {
               spellCheck="false"
               value={formData.name}
               onChange={handleInputChange}
-              className="h-14 text-base border-0 border-b border-gray-200 rounded-none px-0 focus:border-gray-400 focus:ring-0"
-              placeholder="姓名"
+              style={{
+                border: 'none',
+                boxShadow: 'none',
+                borderBottom: '1px solid #e0e0e0',
+                backgroundColor: 'transparent',
+              }}
+              className="h-14 text-base border-0 border-b-gray-200 rounded-none px-2"
+              placeholder="昵称"
             />
           </div>
           
@@ -149,7 +155,13 @@ export default function RegisterPage() {
               spellCheck="false"
               value={formData.email}
               onChange={handleInputChange}
-              className="h-14 text-base border-0 border-b border-gray-200 rounded-none px-0 focus:border-gray-400 focus:ring-0"
+              style={{
+                border: 'none',
+                boxShadow: 'none',
+                borderBottom: '1px solid #e0e0e0',
+                backgroundColor: 'transparent',
+              }}
+              className="h-14 text-base border-0 border-b-gray-200 rounded-none px-2"
               placeholder="邮箱"
             />
           </div>
@@ -167,7 +179,13 @@ export default function RegisterPage() {
               spellCheck="false"
               value={formData.password}
               onChange={handleInputChange}
-              className="h-14 text-base border-0 border-b border-gray-200 rounded-none px-0 focus:border-gray-400 focus:ring-0"
+              style={{
+                border: 'none',
+                boxShadow: 'none',
+                borderBottom: '1px solid #e0e0e0',
+                backgroundColor: 'transparent',
+              }}
+              className="h-14 text-base rounded-none px-2"
               placeholder="密码（至少6位）"
             />
           </div>
@@ -185,7 +203,13 @@ export default function RegisterPage() {
               spellCheck="false"
               value={formData.confirmPassword}
               onChange={handleInputChange}
-              className="h-14 text-base border-0 border-b border-gray-200 rounded-none px-0 focus:border-gray-400 focus:ring-0"
+              style={{
+                border: 'none',
+                boxShadow: 'none',
+                borderBottom: '1px solid #e0e0e0',
+                backgroundColor: 'transparent',
+              }}
+              className="h-14 text-base rounded-none px-2"
               placeholder="确认密码"
             />
           </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { User, Smartphone, LogIn, RefreshCw } from "lucide-react"
+import { User, Settings, LogOut, RefreshCw, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
 import { useCache } from "@/lib/cache-context"
@@ -103,11 +103,6 @@ export default function ProfilePage() {
     return null
   }
 
-  const handlePhoneLogin = () => {
-    // 未来实现手机号登录功能
-    alert('手机号登录功能即将上线，敬请期待！')
-  }
-
   const handleRefresh = () => {
     loadUserProfile(true) // 强制刷新用户信息
     loadUserStats(true)   // 强制刷新统计数据
@@ -165,13 +160,15 @@ export default function ProfilePage() {
           <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
             <p className="text-red-200 text-sm">{profileError}</p>
             <button 
-              onClick={loadUserProfile}
+              onClick={() => loadUserProfile(true)}
               className="text-red-200 text-xs underline mt-1"
             >
               重试
             </button>
           </div>
         )}
+        
+        {/* 用户头像和基本信息 */}
         <div className="flex items-center space-x-4 mb-4">
           <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border-2 border-white/30">
             <User className="h-10 w-10 text-white" />
@@ -236,7 +233,7 @@ export default function ProfilePage() {
 
       {/* 功能菜单 */}
       <div className="px-4 py-4 space-y-3">
-
+        
         {/* 关于应用 */}
         <div className="bg-white rounded-2xl p-4">
           <h3 className="text-lg font-semibold text-gray-800 mb-3">关于应用</h3>

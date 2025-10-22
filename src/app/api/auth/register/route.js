@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { userService } from '@/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
+import crypto from 'crypto'
 
 // POST /api/auth/register - 用户注册
 export async function POST(request) {
@@ -13,7 +14,7 @@ export async function POST(request) {
       return NextResponse.json(
         { 
           success: false, 
-          error: '姓名、邮箱和密码不能为空' 
+          error: '昵称、邮箱和密码不能为空' 
         },
         { status: 400 }
       )
@@ -45,13 +46,16 @@ export async function POST(request) {
     // 生成用户ID
     const userId = uuidv4()
     
+    // 使用 MD5 加密密码
+    const passwordHash = crypto.createHash('md5').update(password).digest('hex')
+    
     // 准备用户数据
     const userData = {
       id: userId,
       name: name.trim(),
       email: email.toLowerCase().trim(),
-      // 注意：实际项目中应该对密码进行哈希处理
-      // 这里为了简化，暂时不处理密码存储
+      password_hash: passwordHash,
+      password_updated_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { userService } from '@/lib/supabase'
+import crypto from 'crypto'
 
 // POST /api/auth/login - 用户登录
 export async function POST(request) {
@@ -30,22 +31,30 @@ export async function POST(request) {
       )
     }
     
-    // 获取所有用户（在实际项目中应该通过邮箱查询）
-    const users = await userService.getUsers()
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase())
+    // 根据邮箱获取用户
+    const user = await userService.getUserByEmail(email)
     
     if (!user) {
       return NextResponse.json(
         { 
           success: false, 
-          error: '用户不存在' 
+          error: '账号或密码错误' 
         },
-        { status: 404 }
+        { status: 401 }
       )
     }
     
-    // 注意：实际项目中应该验证密码哈希
-    // 这里为了简化，暂时跳过密码验证
+    // 验证密码 - 使用 MD5 比较
+    const passwordHash = crypto.createHash('md5').update(password).digest('hex')
+    if (!user.password_hash || user.password_hash !== passwordHash) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: '账号或密码错误' 
+        },
+        { status: 401 }
+      )
+    }
     
     // 生成简单的会话token（实际项目中应该使用JWT）
     const sessionToken = Buffer.from(`${user.id}:${Date.now()}`).toString('base64')
