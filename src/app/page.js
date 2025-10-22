@@ -5,44 +5,46 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import LogForm from "@/components/log/log-form"
 import AccountingForm from "@/components/accounting/accounting-form"
-import { Plus, X, BookOpen, Calculator } from "lucide-react"
+import { Plus, X, BookOpen, Calculator, Minus } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { MOOD_TAGS } from "@/lib/data"
 
 export default function Home() {
   const { user, isAuthenticated, loading } = useAuth()
   const router = useRouter()
   const [showLogForm, setShowLogForm] = useState(false)
   const [showAccountingForm, setShowAccountingForm] = useState(false)
-  const [recentLogs, setRecentLogs] = useState([])
+  const [recentRecords, setRecentRecords] = useState([])
   const logFormRef = useRef(null)
   const accountingFormRef = useRef(null)
 
-  // 获取最近日志
-  const fetchRecentLogs = async () => {
+  // 获取最近记录
+  const fetchRecentRecords = async () => {
     try {
-      const { logsApi } = await import('@/lib/api-client')
-      const response = await logsApi.getLogs({ limit: 3 })
+      const { recentApi } = await import('@/lib/api-client')
+      const response = await recentApi.getRecentRecords(3)
       if (response.success) {
-        setRecentLogs(response.data || [])
+        setRecentRecords(response.data || [])
       }
     } catch (error) {
-      console.error('获取最近日志失败:', error)
+      console.error('获取最近记录失败:', error)
     }
   }
 
   useEffect(() => {
     if (isAuthenticated()) {
-      fetchRecentLogs()
+      fetchRecentRecords()
     }
   }, [isAuthenticated])
 
   const handleLogSave = () => {
     setShowLogForm(false)
-    fetchRecentLogs() // 刷新最近日志
+    fetchRecentRecords() // 刷新最近记录
   }
 
   const handleAccountingSave = () => {
     setShowAccountingForm(false)
+    fetchRecentRecords() // 刷新最近记录
   }
 
   const handleCloseLogForm = () => {
@@ -70,6 +72,37 @@ export default function Home() {
     } else {
       return date.toLocaleDateString('zh-CN')
     }
+  }
+
+  // 获取心情信息
+  const getMoodInfo = (moodId) => {
+    return MOOD_TAGS.find(mood => mood.id === moodId) || { name: moodId, emoji: '😊', color: 'bg-gray-100 text-gray-800' }
+  }
+
+  // 解析心情数据，支持单个心情ID或心情数组
+  const parseMoods = (moodData) => {
+    if (!moodData) return []
+    
+    // 如果是数组，直接返回
+    if (Array.isArray(moodData)) {
+      return moodData
+    }
+    
+    // 如果是字符串，可能是JSON字符串或单个心情ID
+    if (typeof moodData === 'string') {
+      try {
+        const parsed = JSON.parse(moodData)
+        if (Array.isArray(parsed)) {
+          return parsed
+        }
+      } catch (e) {
+        // 不是JSON，当作单个心情ID处理
+        return [moodData]
+      }
+    }
+    
+    // 其他情况，当作单个心情ID处理
+    return [moodData]
   }
 
   // 如果正在加载认证状态
@@ -190,8 +223,8 @@ export default function Home() {
         </div>
         
         <div className="space-y-3">
-          {recentLogs.length > 0 ? (
-            recentLogs.map((log) => (
+          {recentRecords.length > 0 ? (
+            recentRecords.map((log) => (
               <div 
                 key={log.id}
                 className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
@@ -206,11 +239,33 @@ export default function Home() {
                       {formatTime(log.created_at)}
                     </div>
                   </div>
-                  {log.mood && (
-                    <div className="ml-3 text-2xl">
-                      {log.mood}
-                    </div>
-                  )}
+                  <div className="ml-3 flex flex-col items-end space-y-2">
+                    {/* 记账金额显示在右上角 */}
+                    {log.accounting && (
+                      <div className="flex items-center space-x-1">
+                        <div className={`p-1 rounded-full ${log.accounting.type === 'income' ? 'bg-green-100' : 'bg-red-100'}`}>
+                          {log.accounting.type === 'income' ? (
+                            <Plus className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Minus className="h-3 w-3 text-red-600" />
+                          )}
+                        </div>
+                        <span className={`text-sm font-semibold ${log.accounting.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                          ¥{log.accounting.amount}
+                        </span>
+                      </div>
+                    )}
+                    {/* 心情显示 */}
+                    {log.mood && (
+                      <div className="flex flex-wrap gap-1">
+                        {parseMoods(log.mood).map((moodId, index) => (
+                          <span key={index} className="text-lg">
+                            {getMoodInfo(moodId).emoji}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
