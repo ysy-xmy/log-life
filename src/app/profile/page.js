@@ -2,22 +2,18 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { User, Smartphone, LogIn } from "lucide-react"
+import { User, Smartphone, LogIn, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
+import { useCache } from "@/lib/cache-context"
 import { usePullRefresh } from "@/lib/use-pull-refresh"
 import apiClient from "@/lib/api-client"
 import Link from "next/link"
 
 export default function ProfilePage() {
   const { user, isAuthenticated, loading, getToken } = useAuth()
+  const { getCachedData, setCachedData, shouldRefresh } = useCache()
   const router = useRouter()
-  const [userStats, setUserStats] = useState({
-    totalLogs: 0,
-    totalRecords: 0,
-    joinDate: new Date().toISOString().split('T')[0]
-  })
-  const [profileLoading, setProfileLoading] = useState(false)
   const [profileError, setProfileError] = useState(null)
 
   // 使用统一的 loading 管理
@@ -30,40 +26,60 @@ export default function ProfilePage() {
     }
   }, [isAuthenticated])
 
-  // 从接口获取用户详细信息
-  const loadUserProfile = async () => {
-    setProfileLoading(true)
-    setProfileError(null)
+  // 从接口获取用户详细信息（带缓存）
+  const loadUserProfile = async (forceRefresh = false) => {
+    const cachedData = getCachedData('profile')
     
+    // 如果有缓存且不需要强制刷新，直接返回缓存数据
+    if (!forceRefresh && cachedData.data && !shouldRefresh('profile', 10 * 60 * 1000)) {
+      return cachedData.data
+    }
+
     try {
+      setCachedData('profile', null, true) // 设置loading状态
+      setProfileError(null)
+      
       const response = await apiClient.get('/auth/me')
       if (response.success) {
         // 更新本地存储的用户信息
         localStorage.setItem('user', JSON.stringify(response.data))
-        // 这里可以触发 auth context 更新，但为了简化，我们直接使用响应数据
+        setCachedData('profile', response.data, false)
+        return response.data
       }
     } catch (error) {
       console.error('获取用户信息失败:', error)
       setProfileError('获取用户信息失败')
-    } finally {
-      setProfileLoading(false)
+      setCachedData('profile', null, false)
     }
+    return null
   }
 
-  // 从接口获取用户统计数据
-  const loadUserStats = async () => {
+  // 从接口获取用户统计数据（带缓存）
+  const loadUserStats = async (forceRefresh = false) => {
+    const cachedData = getCachedData('userStats')
+    
+    // 如果有缓存且不需要强制刷新，直接返回缓存数据
+    if (!forceRefresh && cachedData.data && !shouldRefresh('userStats', 5 * 60 * 1000)) {
+      return cachedData.data
+    }
+
     try {
+      setCachedData('userStats', null, true) // 设置loading状态
+      
       // 获取日志和记账数据
       const [logsResponse, recordsResponse] = await Promise.all([
         apiClient.get('/logs'),
         apiClient.get('/accounting')
       ])
       
-      setUserStats({
+      const stats = {
         totalLogs: logsResponse.success ? logsResponse.data.length : 0,
         totalRecords: recordsResponse.success ? recordsResponse.data.length : 0,
         joinDate: user?.created_at ? new Date(user.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-      })
+      }
+      
+      setCachedData('userStats', stats, false)
+      return stats
     } catch (error) {
       console.error('加载用户统计失败:', error)
       // 如果接口失败，回退到本地存储
@@ -71,20 +87,30 @@ export default function ProfilePage() {
         const logs = JSON.parse(localStorage.getItem('logs') || '[]')
         const records = JSON.parse(localStorage.getItem('accounting_records') || '[]')
         
-        setUserStats({
+        const stats = {
           totalLogs: logs.length,
           totalRecords: records.length,
           joinDate: user?.created_at ? new Date(user.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-        })
+        }
+        
+        setCachedData('userStats', stats, false)
+        return stats
       } catch (localError) {
         console.error('本地存储读取失败:', localError)
+        setCachedData('userStats', null, false)
       }
     }
+    return null
   }
 
   const handlePhoneLogin = () => {
     // 未来实现手机号登录功能
     alert('手机号登录功能即将上线，敬请期待！')
+  }
+
+  const handleRefresh = () => {
+    loadUserProfile(true) // 强制刷新用户信息
+    loadUserStats(true)   // 强制刷新统计数据
   }
 
   const handleLogout = () => {
@@ -97,8 +123,8 @@ export default function ProfilePage() {
     }
   }
 
-  // 如果正在加载认证状态或用户信息
-  if (loading || profileLoading) {
+  // 如果正在加载认证状态
+  if (loading) {
     return loadingIndicator
   }
 
@@ -159,24 +185,52 @@ export default function ProfilePage() {
               </p>
             )}
           </div>
+          <button 
+            onClick={handleRefresh}
+            className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
+            title="刷新数据"
+          >
+            <RefreshCw className="h-5 w-5" />
+          </button>
         </div>
         
         {/* 快速统计 */}
         <div className="flex space-x-4">
-          <div className="flex-1 bg-white/20 backdrop-blur-sm rounded-xl p-3 text-center">
-            <div className="text-2xl font-bold text-white">{userStats.totalLogs}</div>
-            <div className="text-white/80 text-xs">日志</div>
-          </div>
-          <div className="flex-1 bg-white/20 backdrop-blur-sm rounded-xl p-3 text-center">
-            <div className="text-2xl font-bold text-white">{userStats.totalRecords}</div>
-            <div className="text-white/80 text-xs">记账</div>
-          </div>
-          <div className="flex-1 bg-white/20 backdrop-blur-sm rounded-xl p-3 text-center">
-            <div className="text-2xl font-bold text-white">
-              {user?.created_at ? Math.floor((new Date() - new Date(user.created_at)) / (1000 * 60 * 60 * 24)) : 0}
-            </div>
-            <div className="text-white/80 text-xs">天数</div>
-          </div>
+          {(() => {
+            const statsData = getCachedData('userStats')
+            const userStats = statsData.data || {
+              totalLogs: 0,
+              totalRecords: 0,
+              joinDate: new Date().toISOString().split('T')[0]
+            }
+            
+            if (statsData.loading) {
+              return (
+                <div className="flex-1 bg-white/20 backdrop-blur-sm rounded-xl p-3 text-center">
+                  <div className="text-white/80 text-xs">加载中...</div>
+                </div>
+              )
+            }
+            
+            return (
+              <>
+                <div className="flex-1 bg-white/20 backdrop-blur-sm rounded-xl p-3 text-center">
+                  <div className="text-2xl font-bold text-white">{userStats.totalLogs}</div>
+                  <div className="text-white/80 text-xs">日志</div>
+                </div>
+                <div className="flex-1 bg-white/20 backdrop-blur-sm rounded-xl p-3 text-center">
+                  <div className="text-2xl font-bold text-white">{userStats.totalRecords}</div>
+                  <div className="text-white/80 text-xs">记账</div>
+                </div>
+                <div className="flex-1 bg-white/20 backdrop-blur-sm rounded-xl p-3 text-center">
+                  <div className="text-2xl font-bold text-white">
+                    {user?.created_at ? Math.floor((new Date() - new Date(user.created_at)) / (1000 * 60 * 60 * 24)) : 0}
+                  </div>
+                  <div className="text-white/80 text-xs">天数</div>
+                </div>
+              </>
+            )
+          })()}
         </div>
       </div>
 

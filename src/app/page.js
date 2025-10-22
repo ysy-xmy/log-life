@@ -7,44 +7,63 @@ import LogForm from "@/components/log/log-form"
 import AccountingForm from "@/components/accounting/accounting-form"
 import { Plus, X, BookOpen, Calculator, Minus } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { useCache } from "@/lib/cache-context"
 import { MOOD_TAGS } from "@/lib/data"
 
 export default function Home() {
   const { user, isAuthenticated, loading } = useAuth()
+  const { getCachedData, setCachedData, shouldRefresh } = useCache()
   const router = useRouter()
   const [showLogForm, setShowLogForm] = useState(false)
   const [showAccountingForm, setShowAccountingForm] = useState(false)
-  const [recentRecords, setRecentRecords] = useState([])
   const logFormRef = useRef(null)
   const accountingFormRef = useRef(null)
 
-  // 获取最近记录
-  const fetchRecentRecords = async () => {
+  // 获取最近记录（带缓存）
+  const fetchRecentRecords = async (forceRefresh = false) => {
+    const cachedData = getCachedData('recent')
+    
+    // 如果有缓存且不需要强制刷新，直接返回缓存数据
+    if (!forceRefresh && cachedData.data.length > 0 && !shouldRefresh('recent', 2 * 60 * 1000)) {
+      return cachedData.data
+    }
+
     try {
+      setCachedData('recent', [], true) // 设置loading状态
       const { recentApi } = await import('@/lib/api-client')
       const response = await recentApi.getRecentRecords(3)
       if (response.success) {
-        setRecentRecords(response.data || [])
+        const data = response.data || []
+        setCachedData('recent', data, false)
+        return data
       }
     } catch (error) {
       console.error('获取最近记录失败:', error)
+      setCachedData('recent', [], false)
     }
+    return []
   }
 
   useEffect(() => {
-    if (isAuthenticated()) {
-      fetchRecentRecords()
+    // 等待认证状态加载完成
+    if (!loading) {
+      if (isAuthenticated()) {
+        fetchRecentRecords()
+      } else {
+        // 在 useEffect 中处理路由跳转，避免渲染时调用
+        router.push('/login')
+      }
     }
-  }, [isAuthenticated])
+  }, [loading, isAuthenticated, router])
 
   const handleLogSave = () => {
     setShowLogForm(false)
-    fetchRecentRecords() // 刷新最近记录
+    fetchRecentRecords(true) // 强制刷新最近记录
   }
 
   const handleAccountingSave = () => {
     setShowAccountingForm(false)
-    fetchRecentRecords() // 刷新最近记录
+    fetchRecentRecords(true) // 强制刷新最近记录
   }
 
   const handleCloseLogForm = () => {
@@ -106,11 +125,19 @@ export default function Home() {
   }
 
 
-  // 如果未登录，重定向到登录页面
-  if (!isAuthenticated()) {
-    router.push('/login')
+  // 如果正在加载认证状态
+  if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center h-full">
+        <div className="text-gray-500">加载中...</div>
+      </div>
+    )
+  }
+
+  // 如果未登录，显示跳转提示
+  if (!isAuthenticated()) {
+    return (
+      <div className="flex justify-center items-center h-full">
         <div className="text-gray-500">跳转到登录页面...</div>
       </div>
     )
@@ -215,8 +242,20 @@ export default function Home() {
         </div>
         
         <div className="space-y-3">
-          {recentRecords.length > 0 ? (
-            recentRecords.map((log) => (
+          {(() => {
+            const cachedData = getCachedData('recent')
+            const recentRecords = cachedData.data
+            
+            if (cachedData.loading) {
+              return (
+                <div className="flex justify-center items-center py-8">
+                  <div className="text-gray-500">加载中...</div>
+                </div>
+              )
+            }
+            
+            if (recentRecords.length > 0) {
+              return recentRecords.map((log) => (
               <div 
                 key={log.id}
                 className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
@@ -260,14 +299,17 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-            ))
-          ) : (
-            <div className="bg-white rounded-2xl p-8 text-center shadow-sm">
-              <div className="text-gray-400 text-4xl mb-3">📝</div>
-              <div className="text-gray-500 text-sm">还没有任何记录</div>
-              <div className="text-gray-400 text-xs mt-1">开始记录你的生活吧</div>
-            </div>
-          )}
+              ))
+            } else {
+              return (
+                <div className="bg-white rounded-2xl p-8 text-center shadow-sm">
+                  <div className="text-gray-400 text-4xl mb-3">📝</div>
+                  <div className="text-gray-500 text-sm">还没有任何记录</div>
+                  <div className="text-gray-400 text-xs mt-1">开始记录你的生活吧</div>
+                </div>
+              )
+            }
+          })()}
         </div>
       </div>
 

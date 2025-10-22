@@ -88,15 +88,15 @@ function LoginPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="h-full bg-white flex flex-col">
       {/* 顶部导航栏 */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <h1 className="text-lg font-semibold text-gray-900">登录</h1>
         <div className="w-5"></div>
       </div>
       
       {/* 主要内容区域 */}
-      <div className="px-4 py-8">
+      <div className="flex-1 overflow-y-auto px-4 py-8">
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Log Life</h2>
           <p className="text-gray-600 text-sm">
