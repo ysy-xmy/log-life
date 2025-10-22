@@ -77,6 +77,17 @@ input[type="text"]:-webkit-autofill {
   overflow: hidden;
 }
 
+/* 隐藏滚动条样式 */
+.scrollbar-hide {
+  /* 对于 Webkit 浏览器 (Chrome, Safari, Edge) */
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Edge */
+}
+
 /* 沙漏 Loading 动画 */
 .lds-hourglass,
 .lds-hourglass:after {

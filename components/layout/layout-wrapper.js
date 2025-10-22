@@ -3,7 +3,6 @@
 import { usePathname, useSearchParams } from "next/navigation"
 import { Suspense } from "react"
 import { cn } from "@/lib/utils"
-import SwipeNavigation from "./swipe-navigation"
 
 function LayoutWrapperContent({ children }) {
   const pathname = usePathname()
@@ -38,11 +37,9 @@ function LayoutWrapperContent({ children }) {
         hideNavigation ? "h-screen" : "h-[calc(100vh-4rem)]" // 4rem = 64px (h-16)
       )}
     >
-      <SwipeNavigation>
-        <div className="h-full overflow-y-auto">
-          {children}
-        </div>
-      </SwipeNavigation>
+      <div className="h-full overflow-y-auto">
+        {children}
+      </div>
     </main>
   )
 }

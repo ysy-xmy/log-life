@@ -239,7 +239,7 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
   }
 
   return (
-    <div ref={containerRef} className="space-y-6">
+    <div ref={containerRef} className="space-y-6 scrollbar-hide">
       {refreshIndicator}
       {Object.entries(groupedLogs).map(([dateKey, dateLogs], index) => (
         <div key={dateKey} className="space-y-4">
