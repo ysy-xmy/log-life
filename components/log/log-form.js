@@ -358,6 +358,7 @@ const LogForm = forwardRef(function LogForm({ onSave, initialData = null }, ref)
           placeholder="今天发生了什么有趣的事情？输入 # 选择心情"
           value={content}
           onChange={handleContentChange}
+          disabled={isSaving}
           style={{ 
             border: 'none', 
             boxShadow: 'none',
@@ -367,7 +368,9 @@ const LogForm = forwardRef(function LogForm({ onSave, initialData = null }, ref)
             height: 'auto',
             overflowY: content.length > 0 ? 'auto' : 'hidden'
           }}
-          className="bg-gray-50 rounded-2xl p-4 text-base resize-none focus:shadow-none focus:bg-gray-100 transition-colors"
+          className={`bg-gray-50 rounded-2xl p-4 text-base resize-none focus:shadow-none focus:bg-gray-100 transition-colors ${
+            isSaving ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
         />
         {/* 心情标签显示在左下角 */}
         {moods.length > 0 && (
@@ -421,8 +424,13 @@ const LogForm = forwardRef(function LogForm({ onSave, initialData = null }, ref)
       {/* 图片上传 - 类似微信朋友圈 */}
       <div className="flex items-center space-x-3">
         <button
-          onClick={() => document.getElementById('image-input')?.click()}
-          className="w-12 h-12 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400 hover:border-gray-400 hover:text-gray-600 transition-colors"
+          onClick={() => !isSaving && document.getElementById('image-input')?.click()}
+          disabled={isSaving}
+          className={`w-12 h-12 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400 transition-colors ${
+            isSaving 
+              ? 'opacity-50 cursor-not-allowed' 
+              : 'hover:border-gray-400 hover:text-gray-600'
+          }`}
         >
           <Plus className="h-6 w-6" />
         </button>
@@ -489,6 +497,31 @@ const LogForm = forwardRef(function LogForm({ onSave, initialData = null }, ref)
         </div>
       )}
 
+      {/* 保存按钮 */}
+      <div className="flex justify-end">
+        <Button
+          onClick={handleSave}
+          disabled={isSaving || !content.trim()}
+          className={`px-8 py-3 rounded-full font-medium transition-all ${
+            isSaving 
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+              : 'bg-gray-800 text-white hover:bg-gray-700 active:scale-95'
+          }`}
+        >
+          {isSaving ? (
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+              <span>保存中...</span>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <Save className="h-4 w-4" />
+              <span>{initialData ? '更新' : '发布'}</span>
+            </div>
+          )}
+        </Button>
+      </div>
+
       {/* 记账功能 */}
       <div className="space-y-3">
         <div className="flex items-center space-x-2">
@@ -496,9 +529,10 @@ const LogForm = forwardRef(function LogForm({ onSave, initialData = null }, ref)
           <span className="text-sm text-gray-600">记账</span>
           <button
             onClick={() => setHasAccounting(!hasAccounting)}
+            disabled={isSaving}
             className={`ml-auto w-12 h-6 rounded-full transition-colors ${
               hasAccounting ? 'bg-gray-800' : 'bg-gray-200'
-            }`}
+            } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <div className={`w-5 h-5 bg-white rounded-full transition-transform ${
               hasAccounting ? 'translate-x-6' : 'translate-x-0.5'
@@ -512,28 +546,34 @@ const LogForm = forwardRef(function LogForm({ onSave, initialData = null }, ref)
             <div className="flex space-x-2">
               <button
                 onClick={() => {
-                  setAccountingType('expense')
-                  setAccountingCategory('') // 重置类别选择
+                  if (!isSaving) {
+                    setAccountingType('expense')
+                    setAccountingCategory('') // 重置类别选择
+                  }
                 }}
+                disabled={isSaving}
                 className={`flex items-center space-x-1 px-3 py-2 rounded-full text-sm transition-colors ${
                   accountingType === 'expense'
                     ? "bg-red-100 text-red-700 border border-red-200"
                     : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                }`}
+                } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <Minus className="h-4 w-4" />
                 <span>支出</span>
               </button>
               <button
                 onClick={() => {
-                  setAccountingType('income')
-                  setAccountingCategory('') // 重置类别选择
+                  if (!isSaving) {
+                    setAccountingType('income')
+                    setAccountingCategory('') // 重置类别选择
+                  }
                 }}
+                disabled={isSaving}
                 className={`flex items-center space-x-1 px-3 py-2 rounded-full text-sm transition-colors ${
                   accountingType === 'income'
                     ? "bg-green-100 text-green-700 border border-green-200"
                     : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                }`}
+                } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <Plus className="h-4 w-4" />
                 <span>收入</span>
@@ -553,7 +593,10 @@ const LogForm = forwardRef(function LogForm({ onSave, initialData = null }, ref)
                 placeholder="金额"
                 value={accountingAmount}
                 onChange={(e) => setAccountingAmount(e.target.value)}
-                className="flex-1 px-3 py-2 bg-gray-50 rounded-full text-sm border-0 focus:outline-none focus:bg-gray-100 transition-colors"
+                disabled={isSaving}
+                className={`flex-1 px-3 py-2 bg-gray-50 rounded-full text-sm border-0 focus:outline-none focus:bg-gray-100 transition-colors ${
+                  isSaving ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               />
             </div>
 
@@ -562,14 +605,15 @@ const LogForm = forwardRef(function LogForm({ onSave, initialData = null }, ref)
               {(accountingType === 'income' ? ACCOUNTING_CATEGORIES.income : ACCOUNTING_CATEGORIES.expense).map((cat) => (
                 <button
                   key={cat.id}
-                  onClick={() => setAccountingCategory(cat.id)}
+                  onClick={() => !isSaving && setAccountingCategory(cat.id)}
+                  disabled={isSaving}
                   className={`flex items-center space-x-1 px-3 py-2 rounded-full text-sm transition-colors ${
                     accountingCategory === cat.id
                       ? accountingType === 'income' 
                         ? "bg-green-100 text-green-700 border border-green-200"
                         : "bg-red-100 text-red-700 border border-red-200"
                       : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                  }`}
+                  } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <span>{cat.icon}</span>
                   <span>{cat.name}</span>
@@ -583,7 +627,10 @@ const LogForm = forwardRef(function LogForm({ onSave, initialData = null }, ref)
               placeholder={`${accountingType === 'income' ? '收入' : '支出'}备注（可选）`}
               value={accountingNote}
               onChange={(e) => setAccountingNote(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 rounded-full text-sm border-0 focus:outline-none focus:bg-gray-100 transition-colors"
+              disabled={isSaving}
+              className={`w-full px-3 py-2 bg-gray-50 rounded-full text-sm border-0 focus:outline-none focus:bg-gray-100 transition-colors ${
+                isSaving ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             />
           </div>
         )}
