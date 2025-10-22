@@ -116,9 +116,9 @@ function LogsPageContent() {
   }
 
   return (
-    <div>
+    <div className="h-full flex flex-col">
       {/* 顶部标题和搜索 */}
-      <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 z-40">
+      <div className="flex-shrink-0 bg-white border-b border-gray-100 px-4 py-3">
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-xl font-semibold text-gray-800">生活日志</h1>
           <Button 
@@ -143,8 +143,8 @@ function LogsPageContent() {
         </div>
       </div>
 
-      {/* 日志列表 */}
-      <div className="px-4 py-4">
+      {/* 日志列表 - 使用flex-1让列表区域自适应剩余高度 */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
         <LogList 
           onEdit={handleLogEdit}
           onDelete={handleLogDelete}
@@ -157,9 +157,9 @@ function LogsPageContent() {
 
       {/* 写日志表单 - 全屏高度，PC端限制宽度 */}
       {showLogForm && (
-        <div className="max-w-md mx-auto fixed inset-0 bg-white z-50 flex flex-col">
+        <div className="max-w-md mx-auto fixed inset-0 bg-white z-50 flex flex-col mobile-viewport">
           {/* 顶部导航栏 */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <Button 
               variant="ghost" 
               size="sm"
@@ -183,7 +183,7 @@ function LogsPageContent() {
             </Button>
           </div>
           
-          {/* 表单内容 */}
+          {/* 表单内容 - 使用flex-1和overflow-y-auto */}
           <div className="flex-1 overflow-y-auto p-4">
             <LogForm 
               ref={logFormRef}

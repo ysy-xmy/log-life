@@ -49,6 +49,12 @@ html, body {
   overscroll-behavior: none;
 }
 
+/* 移动端视口高度适配 */
+.mobile-viewport {
+  height: 100vh;
+  height: -webkit-fill-available;
+}
+
 /* 文本截断样式 */
 .line-clamp-4 {
   display: -webkit-box;
