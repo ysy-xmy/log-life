@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { useInputFocusListener } from "@/lib/use-prevent-scroll"
 
 const navigationItems = [
   {
@@ -38,12 +39,16 @@ export default function SwipeNavigation({ children }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [isInputFocused, setIsInputFocused] = useState(false)
   const containerRef = useRef(null)
   const startX = useRef(0)
   const startY = useRef(0)
   const currentX = useRef(0)
   const currentY = useRef(0)
   const isDraggingRef = useRef(false)
+
+  // 监听输入框焦点状态变化
+  useInputFocusListener(setIsInputFocused)
 
   // 根据当前路径确定索引
   useEffect(() => {
@@ -55,7 +60,8 @@ export default function SwipeNavigation({ children }) {
 
   // 处理触摸开始
   const handleTouchStart = (e) => {
-    if (isTransitioning) return
+    // 如果输入框获得焦点，禁用滑动导航
+    if (isInputFocused || isTransitioning) return
     
     startX.current = e.touches[0].clientX
     startY.current = e.touches[0].clientY
@@ -67,7 +73,8 @@ export default function SwipeNavigation({ children }) {
 
   // 处理触摸移动
   const handleTouchMove = (e) => {
-    if (!isDraggingRef.current || isTransitioning) return
+    // 如果输入框获得焦点，禁用滑动导航
+    if (isInputFocused || !isDraggingRef.current || isTransitioning) return
     
     currentX.current = e.touches[0].clientX
     currentY.current = e.touches[0].clientY
@@ -88,7 +95,8 @@ export default function SwipeNavigation({ children }) {
 
   // 处理触摸结束
   const handleTouchEnd = (e) => {
-    if (!isDraggingRef.current || isTransitioning) return
+    // 如果输入框获得焦点，禁用滑动导航
+    if (isInputFocused || !isDraggingRef.current || isTransitioning) return
     
     isDraggingRef.current = false
     setIsDragging(false)
@@ -154,7 +162,8 @@ export default function SwipeNavigation({ children }) {
 
   // 处理鼠标事件（用于桌面端测试）
   const handleMouseDown = (e) => {
-    if (isTransitioning) return
+    // 如果输入框获得焦点，禁用滑动导航
+    if (isInputFocused || isTransitioning) return
     
     startX.current = e.clientX
     startY.current = e.clientY
@@ -165,7 +174,8 @@ export default function SwipeNavigation({ children }) {
   }
 
   const handleMouseMove = (e) => {
-    if (!isDraggingRef.current || isTransitioning) return
+    // 如果输入框获得焦点，禁用滑动导航
+    if (isInputFocused || !isDraggingRef.current || isTransitioning) return
     
     currentX.current = e.clientX
     currentY.current = e.clientY
@@ -182,7 +192,8 @@ export default function SwipeNavigation({ children }) {
   }
 
   const handleMouseUp = () => {
-    if (!isDraggingRef.current || isTransitioning) return
+    // 如果输入框获得焦点，禁用滑动导航
+    if (isInputFocused || !isDraggingRef.current || isTransitioning) return
     
     isDraggingRef.current = false
     setIsDragging(false)
