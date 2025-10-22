@@ -19,7 +19,6 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
   // 从缓存获取数据
   const cachedData = getCachedData('logs')
   const [logs, setLogs] = useState(cachedData.data || [])
-  const [loading, setLoading] = useState(cachedData.loading || false)
 
   // 下拉刷新处理函数
   const handleRefresh = async () => {
@@ -28,7 +27,7 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
     }
   }
 
-  const { containerRef, isRefreshing, refreshIndicator } = usePullRefresh(handleRefresh)
+  const { containerRef, isRefreshing, refreshIndicator, isLoading, setLoading, loadingIndicator } = usePullRefresh(handleRefresh, 100, "加载中...")
 
   // 处理新日志添加
   useEffect(() => {
@@ -219,12 +218,8 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
   // 获取分组后的日志
   const groupedLogs = groupLogsByDate(filteredLogs)
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-8">
-        <div className="text-gray-500">加载中...</div>
-      </div>
-    )
+  if (isLoading) {
+    return loadingIndicator
   }
 
   if (Object.keys(groupedLogs).length === 0) {

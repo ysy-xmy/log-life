@@ -14,7 +14,6 @@ export default function StatisticsDashboard() {
   const [logs, setLogs] = useState([])
   const [records, setRecords] = useState([])
   const [timeRange, setTimeRange] = useState('week')
-  const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview') // 'overview', 'logs', 'accounting'
   const { getCachedData, setCachedData, shouldRefresh } = useCache()
 
@@ -53,7 +52,7 @@ export default function StatisticsDashboard() {
     }
   }, [getCachedData, shouldRefresh])
 
-  const { containerRef, refreshIndicator } = usePullRefresh(fetchData)
+  const { containerRef, refreshIndicator, isLoading, setLoading, loadingIndicator } = usePullRefresh(fetchData, 100, "加载中...")
 
   const getDateRange = () => {
     const now = new Date()
@@ -266,12 +265,8 @@ export default function StatisticsDashboard() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-8">
-        <div className="text-gray-500">加载中...</div>
-      </div>
-    )
+  if (isLoading) {
+    return loadingIndicator
   }
 
   const logStats = getLogStatistics()

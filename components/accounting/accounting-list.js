@@ -22,7 +22,6 @@ export default function AccountingList({ onEdit, onDelete, refreshTrigger, newRe
   // 从缓存获取数据
   const cachedData = getCachedData('accounting')
   const [records, setRecords] = useState(cachedData.data || [])
-  const [loading, setLoading] = useState(cachedData.loading || false)
 
   // 检查认证状态
   useEffect(() => {
@@ -37,7 +36,7 @@ export default function AccountingList({ onEdit, onDelete, refreshTrigger, newRe
     await loadRecords(true)
   }
 
-  const { containerRef, isRefreshing, refreshIndicator } = usePullRefresh(handleRefresh)
+  const { containerRef, isRefreshing, refreshIndicator, isLoading, setLoading, loadingIndicator } = usePullRefresh(handleRefresh, 100, "加载中...")
 
   useEffect(() => {
     // 只有在用户已认证的情况下才加载数据
@@ -183,12 +182,8 @@ export default function AccountingList({ onEdit, onDelete, refreshTrigger, newRe
     return null
   }
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-8">
-        <div className="text-gray-500">加载中...</div>
-      </div>
-    )
+  if (isLoading) {
+    return loadingIndicator
   }
 
   return (
