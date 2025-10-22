@@ -4,6 +4,7 @@ import Navigation from "@/components/layout/navigation";
 import { AuthProvider } from "@/lib/auth-context";
 import { CacheProvider } from "@/lib/cache-context";
 import LayoutWrapper from "@/components/layout/layout-wrapper";
+import DisablePullRefresh from "@/components/disable-pull-refresh";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,10 +29,11 @@ export default function RootLayout({ children }) {
       >
         <AuthProvider>
           <CacheProvider>
+            <DisablePullRefresh />
             <LayoutWrapper>
               {children}
-              <Navigation />
             </LayoutWrapper>
+            <Navigation />
           </CacheProvider>
         </AuthProvider>
       </body>

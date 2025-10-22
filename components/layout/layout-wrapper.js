@@ -32,30 +32,29 @@ function LayoutWrapperContent({ children }) {
   const hideNavigation = shouldHideNavigation()
 
   return (
-    <div className="h-screen bg-white flex flex-col">
-      <main className={cn(
-        "w-full max-w-md mx-auto bg-gray-50 flex-1 overflow-hidden relative"
-      )}>
-        <SwipeNavigation>
-          <div className="h-full overflow-y-auto">
-            {children}
-          </div>
-        </SwipeNavigation>
-      </main>
-    </div>
+    <main 
+      className={cn(
+        "w-full max-w-md mx-auto bg-gray-50 overflow-hidden relative",
+        hideNavigation ? "h-screen" : "h-[calc(100vh-4rem)]" // 4rem = 64px (h-16)
+      )}
+    >
+      <SwipeNavigation>
+        <div className="h-full overflow-y-auto">
+          {children}
+        </div>
+      </SwipeNavigation>
+    </main>
   )
 }
 
 export default function LayoutWrapper({ children }) {
   return (
     <Suspense fallback={
-      <div className="h-screen bg-white flex flex-col">
-        <main className="w-full max-w-md mx-auto bg-gray-50 flex-1 overflow-y-auto">
-          <div className="flex justify-center items-center h-full">
-            <div className="text-gray-500">加载中...</div>
-          </div>
-        </main>
-      </div>
+      <main className="w-full max-w-md mx-auto bg-gray-50 h-[calc(100vh-4rem)] overflow-y-auto">
+        <div className="flex justify-center items-center h-full">
+          <div className="text-gray-500">加载中...</div>
+        </div>
+      </main>
     }>
       <LayoutWrapperContent>{children}</LayoutWrapperContent>
     </Suspense>

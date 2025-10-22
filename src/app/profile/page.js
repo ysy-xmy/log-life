@@ -132,7 +132,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="bg-gray-50 ">
+    <div className="bg-gray-50 h-full">
       {/* 顶部用户信息区域 */}
       <div className="bg-gray-800 px-4 pt-8 pb-6">
         {profileError && (
