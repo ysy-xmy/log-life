@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
 import { useCache } from "@/lib/cache-context"
 import { usePullRefresh } from "@/lib/use-pull-refresh"
+import { usePreventScroll } from "@/lib/use-prevent-scroll"
 import apiClient from "@/lib/api-client"
 import Link from "next/link"
 
@@ -15,6 +16,9 @@ export default function ProfilePage() {
   const { getCachedData, setCachedData, shouldRefresh } = useCache()
   const router = useRouter()
   const [profileError, setProfileError] = useState(null)
+
+  // 启用全局防滚动穿透功能
+  usePreventScroll(true)
 
   // 使用统一的 loading 管理
   const { loadingIndicator } = usePullRefresh(() => {}, 100, "加载中...")

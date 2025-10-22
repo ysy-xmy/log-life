@@ -7,6 +7,7 @@ import LogForm from "@/components/log/log-form"
 import LogList from "@/components/log/log-list"
 import { Plus, X, Search, User } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { usePreventScroll } from "@/lib/use-prevent-scroll"
 import Link from "next/link"
 
 function LogsPageContent() {
@@ -19,6 +20,9 @@ function LogsPageContent() {
   const [showLogForm, setShowLogForm] = useState(false)
   const [newLog, setNewLog] = useState(null)
   const logFormRef = useRef(null)
+
+  // 启用全局防滚动穿透功能
+  usePreventScroll(true)
 
   const handleLogEdit = useCallback(async (log) => {
     console.log('开始编辑日志:', log)
@@ -137,6 +141,10 @@ function LogsPageContent() {
             type="text"
             placeholder="搜索日志内容..."
             value={searchQuery}
+            style={{
+              border: 'none',
+              boxShadow: 'none',
+            }}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-gray-50 rounded-full text-sm border-0 focus:outline-none focus:ring-2 focus:ring-gray-200"
           />

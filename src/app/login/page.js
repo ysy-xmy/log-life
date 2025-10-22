@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
+import { usePreventScroll } from '@/lib/use-prevent-scroll'
 
 function LoginPageContent() {
   const router = useRouter()
@@ -18,6 +19,9 @@ function LoginPageContent() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+
+  // 启用全局防滚动穿透功能
+  usePreventScroll(true)
 
   useEffect(() => {
     // 检查是否有成功消息

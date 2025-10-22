@@ -5,6 +5,7 @@ import AccountingForm from "@/components/accounting/accounting-form"
 import AccountingList from "@/components/accounting/accounting-list"
 import { Calculator, Plus, List, ArrowLeft } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { usePreventScroll } from "@/lib/use-prevent-scroll"
 import { useRouter } from "next/navigation"
 
 export default function AccountingPage() {
@@ -14,6 +15,9 @@ export default function AccountingPage() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [newRecord, setNewRecord] = useState(null)
   const [currentView, setCurrentView] = useState('list') // 'list' 或 'add'
+
+  // 启用全局防滚动穿透功能
+  usePreventScroll(true)
 
   // 检查认证状态
   useEffect(() => {

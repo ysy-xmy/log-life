@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { usePreventScroll } from '@/lib/use-prevent-scroll'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -17,6 +18,9 @@ export default function RegisterPage() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // 启用全局防滚动穿透功能
+  usePreventScroll(true)
 
   const handleInputChange = (e) => {
     const { name, value } = e.target

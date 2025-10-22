@@ -8,6 +8,7 @@ import AccountingForm from "@/components/accounting/accounting-form"
 import { Plus, X, BookOpen, Calculator, Minus } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useCache } from "@/lib/cache-context"
+import { usePreventScroll } from "@/lib/use-prevent-scroll"
 import { MOOD_TAGS } from "@/lib/data"
 
 export default function Home() {
@@ -18,6 +19,9 @@ export default function Home() {
   const [showAccountingForm, setShowAccountingForm] = useState(false)
   const logFormRef = useRef(null)
   const accountingFormRef = useRef(null)
+
+  // 启用全局防滚动穿透功能
+  usePreventScroll(true)
 
   // 获取最近记录（带缓存）
   const fetchRecentRecords = async (forceRefresh = false) => {
