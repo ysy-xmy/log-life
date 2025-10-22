@@ -3,6 +3,7 @@
 import { usePathname, useSearchParams } from "next/navigation"
 import { Suspense } from "react"
 import { cn } from "@/lib/utils"
+import SwipeNavigation from "./swipe-navigation"
 
 function LayoutWrapperContent({ children }) {
   const pathname = usePathname()
@@ -33,9 +34,13 @@ function LayoutWrapperContent({ children }) {
   return (
     <div className="h-screen bg-white flex flex-col">
       <main className={cn(
-        "w-full max-w-md mx-auto bg-gray-50 flex-1 overflow-y-auto"
+        "w-full max-w-md mx-auto bg-gray-50 flex-1 overflow-hidden relative"
       )}>
-        {children}
+        <SwipeNavigation>
+          <div className="h-full overflow-y-auto">
+            {children}
+          </div>
+        </SwipeNavigation>
       </main>
     </div>
   )

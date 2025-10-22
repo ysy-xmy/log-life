@@ -117,9 +117,9 @@ export default function Home() {
   }
 
   return (
-    <div className=" bg-gray-50">
+    <div className="bg-gray-50 h-full flex flex-col">
       {/* 大幅宣传区域 */}
-      <div className=" px-4 py-12">
+      <div className="px-4 py-12 flex-shrink-0">
         <div className="max-w-md mx-auto text-center">
           <div className="flex justify-center mb-6">
             <img 
@@ -137,7 +137,7 @@ export default function Home() {
       </div>
 
       {/* 日期时间卡片 */}
-      <div className="px-4 py-4">
+      <div className="px-4 py-2 flex-shrink-0">
         <div className="bg-white rounded-2xl p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -176,7 +176,7 @@ export default function Home() {
       </div>
 
       {/* 快捷入口按钮 */}
-      <div className="px-4 py-2">
+      <div className="px-4 py-2 flex-shrink-0">
         <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
           {/* 写日志按钮 */}
           <div className="text-center">
@@ -202,8 +202,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 最近日志 */}
-      <div className="px-4 py-4">
+      {/* 最近日志 - 可滚动区域 */}
+      <div className="px-4 py-4 flex-1 overflow-y-auto">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold text-gray-800">最近记录</h2>
           <button 

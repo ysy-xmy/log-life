@@ -6,38 +6,79 @@ import { User, Smartphone, LogIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
 import { usePullRefresh } from "@/lib/use-pull-refresh"
+import apiClient from "@/lib/api-client"
 import Link from "next/link"
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, loading } = useAuth()
+  const { user, isAuthenticated, loading, getToken } = useAuth()
   const router = useRouter()
   const [userStats, setUserStats] = useState({
     totalLogs: 0,
     totalRecords: 0,
     joinDate: new Date().toISOString().split('T')[0]
   })
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [profileError, setProfileError] = useState(null)
 
   // 使用统一的 loading 管理
   const { loadingIndicator } = usePullRefresh(() => {}, 100, "加载中...")
 
   useEffect(() => {
     if (isAuthenticated()) {
+      loadUserProfile()
       loadUserStats()
     }
   }, [isAuthenticated])
 
-  const loadUserStats = () => {
+  // 从接口获取用户详细信息
+  const loadUserProfile = async () => {
+    setProfileLoading(true)
+    setProfileError(null)
+    
     try {
-      const logs = JSON.parse(localStorage.getItem('logs') || '[]')
-      const records = JSON.parse(localStorage.getItem('accounting_records') || '[]')
+      const response = await apiClient.get('/auth/me')
+      if (response.success) {
+        // 更新本地存储的用户信息
+        localStorage.setItem('user', JSON.stringify(response.data))
+        // 这里可以触发 auth context 更新，但为了简化，我们直接使用响应数据
+      }
+    } catch (error) {
+      console.error('获取用户信息失败:', error)
+      setProfileError('获取用户信息失败')
+    } finally {
+      setProfileLoading(false)
+    }
+  }
+
+  // 从接口获取用户统计数据
+  const loadUserStats = async () => {
+    try {
+      // 获取日志和记账数据
+      const [logsResponse, recordsResponse] = await Promise.all([
+        apiClient.get('/logs'),
+        apiClient.get('/accounting')
+      ])
       
       setUserStats({
-        totalLogs: logs.length,
-        totalRecords: records.length,
-        joinDate: new Date().toISOString().split('T')[0]
+        totalLogs: logsResponse.success ? logsResponse.data.length : 0,
+        totalRecords: recordsResponse.success ? recordsResponse.data.length : 0,
+        joinDate: user?.created_at ? new Date(user.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
       })
     } catch (error) {
       console.error('加载用户统计失败:', error)
+      // 如果接口失败，回退到本地存储
+      try {
+        const logs = JSON.parse(localStorage.getItem('logs') || '[]')
+        const records = JSON.parse(localStorage.getItem('accounting_records') || '[]')
+        
+        setUserStats({
+          totalLogs: logs.length,
+          totalRecords: records.length,
+          joinDate: user?.created_at ? new Date(user.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+        })
+      } catch (localError) {
+        console.error('本地存储读取失败:', localError)
+      }
     }
   }
 
@@ -56,8 +97,8 @@ export default function ProfilePage() {
     }
   }
 
-  // 如果正在加载认证状态
-  if (loading) {
+  // 如果正在加载认证状态或用户信息
+  if (loading || profileLoading) {
     return loadingIndicator
   }
 
@@ -94,6 +135,17 @@ export default function ProfilePage() {
     <div className="bg-gray-50 ">
       {/* 顶部用户信息区域 */}
       <div className="bg-gray-800 px-4 pt-8 pb-6">
+        {profileError && (
+          <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
+            <p className="text-red-200 text-sm">{profileError}</p>
+            <button 
+              onClick={loadUserProfile}
+              className="text-red-200 text-xs underline mt-1"
+            >
+              重试
+            </button>
+          </div>
+        )}
         <div className="flex items-center space-x-4 mb-4">
           <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border-2 border-white/30">
             <User className="h-10 w-10 text-white" />
@@ -101,6 +153,11 @@ export default function ProfilePage() {
           <div className="flex-1">
             <h2 className="text-xl font-bold text-white">{user?.name || '用户'}</h2>
             <p className="text-white/80 text-sm">{user?.email || '未设置邮箱'}</p>
+            {user?.created_at && (
+              <p className="text-white/60 text-xs mt-1">
+                加入时间: {new Date(user.created_at).toLocaleDateString('zh-CN')}
+              </p>
+            )}
           </div>
         </div>
         

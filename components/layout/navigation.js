@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
-import { Suspense } from "react"
+import { Suspense, useState, useEffect } from "react"
 import { 
   BookOpen, 
   Calculator, 
@@ -43,9 +43,20 @@ const navigationItems = [
 function NavigationContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const [isClient, setIsClient] = useState(false)
+
+  // 确保在客户端环境中
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   // 检查是否应该隐藏底部导航栏
   const shouldHideNavigation = () => {
+    // 在服务器端渲染时，默认不隐藏导航栏
+    if (!isClient) {
+      return false
+    }
+
     // 查看日志页面
     if (pathname.startsWith('/log/')) {
       return true
@@ -102,7 +113,28 @@ function NavigationContent() {
 
 export default function Navigation() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50">
+        <div className="w-full max-w-md mx-auto">
+          <div className="flex items-center justify-around h-16">
+            {navigationItems.map((item) => {
+              const Icon = item.icon
+              return (
+                <div
+                  key={item.name}
+                  className="flex flex-col items-center justify-center flex-1 py-2"
+                >
+                  <Icon className="h-5 w-5 mb-1 text-gray-500" />
+                  <span className="text-xs text-gray-500">
+                    {item.name}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </nav>
+    }>
       <NavigationContent />
     </Suspense>
   )
