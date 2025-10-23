@@ -1,20 +1,9 @@
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Navigation from "@/components/layout/navigation";
 import { AuthProvider } from "@/lib/auth-context";
 import { CacheProvider } from "@/lib/cache-context";
 import LayoutWrapper from "@/components/layout/layout-wrapper";
 import DisablePullRefresh from "@/components/disable-pull-refresh";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata = {
   title: "Log Life - 记录生活的每一天",
@@ -24,9 +13,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="zh-CN">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className="font-sans antialiased">
         <AuthProvider>
           <CacheProvider>
             <DisablePullRefresh />

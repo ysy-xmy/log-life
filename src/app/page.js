@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import LogForm from "@/components/log/log-form"
 import AccountingForm from "@/components/accounting/accounting-form"
