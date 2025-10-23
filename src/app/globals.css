@@ -88,6 +88,9 @@ input[type="text"]:-webkit-autofill {
   display: none;  /* Chrome, Safari, Edge */
 }
 
+scrollable::-webkit-scrollbar {
+display: none; /* 隐藏滚动条 */
+}
 /* 沙漏 Loading 动画 */
 .lds-hourglass,
 .lds-hourglass:after {

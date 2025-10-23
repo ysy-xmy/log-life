@@ -53,7 +53,7 @@ export default function AccountingPage() {
   }
 
   return (
-    <div className="bg-gray-50">
+    <div className="h-full flex flex-col bg-gray-50">
       {/* 如果正在加载认证状态，显示加载中 */}
       {authLoading ? (
         <div className="flex justify-center items-center h-screen">
@@ -65,7 +65,7 @@ export default function AccountingPage() {
       ) : (
         <>
           {/* 顶部导航 */}
-          <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 z-40">
+          <div className="sticky flex-shrink-0 top-0 bg-white border-b border-gray-100 px-4 py-3 z-40">
             <div className="flex items-center justify-between">
               {currentView === 'add' ? (
                 <button
@@ -91,8 +91,8 @@ export default function AccountingPage() {
             </div>
           </div>
 
-          {/* 主要内容 */}
-          <div className="px-4 py-4">
+          {/* 主要内容 - 可滚动区域 */}
+          <div className="flex-1 overflow-y-auto px-4 py-4">
             {currentView === 'list' ? (
               <AccountingList 
                 refreshTrigger={refreshKey}

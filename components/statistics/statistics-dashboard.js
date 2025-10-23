@@ -273,7 +273,7 @@ export default function StatisticsDashboard() {
   const accountingStats = getAccountingStatistics()
 
   return (
-    <div className="bg-gray-50" ref={containerRef} style={{ overflowY: 'auto', height: '100dvh' }}>
+    <div className="bg-gray-50 h-full flex flex-col">
       {/* 顶部导航 */}
       <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 z-40">
         <div className="flex items-center justify-between">
@@ -286,7 +286,7 @@ export default function StatisticsDashboard() {
       {refreshIndicator}
 
       {/* 主要内容 */}
-      <div className="px-4 py-4 space-y-4">
+      <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {/* 底部导航 */}
         <div className="flex bg-white rounded-xl p-1 shadow-sm">
           <button
