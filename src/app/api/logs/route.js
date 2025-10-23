@@ -120,12 +120,14 @@ export async function POST(request) {
           date: accounting.date || new Date().toISOString().split('T')[0],
         }
         
+        console.log('创建日志时自动创建记账记录:', accountingData)
         const accountingRecord = await accountingService.createAccountingRecord(accountingData)
         accountingId = accountingRecord.id
         console.log('自动创建记账记录成功:', accountingRecord.id)
       } catch (error) {
         console.error('创建记账记录失败:', error)
         // 记账失败不影响日志创建，继续执行
+        console.log('记账记录创建失败，但继续创建日志')
       }
     }
     

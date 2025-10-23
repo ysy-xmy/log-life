@@ -497,30 +497,6 @@ const LogForm = forwardRef(function LogForm({ onSave, initialData = null }, ref)
         </div>
       )}
 
-      {/* 保存按钮 */}
-      <div className="flex justify-end">
-        <Button
-          onClick={handleSave}
-          disabled={isSaving || !content.trim()}
-          className={`px-8 py-3 rounded-full font-medium transition-all ${
-            isSaving 
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-              : 'bg-gray-800 text-white hover:bg-gray-700 active:scale-95'
-          }`}
-        >
-          {isSaving ? (
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-              <span>保存中...</span>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-2">
-              <Save className="h-4 w-4" />
-              <span>{initialData ? '更新' : '发布'}</span>
-            </div>
-          )}
-        </Button>
-      </div>
 
       {/* 记账功能 */}
       <div className="space-y-3">

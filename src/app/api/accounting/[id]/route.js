@@ -18,7 +18,7 @@ export async function GET(request, { params }) {
     }
     
     const { userId } = authResult
-    const { id } = params
+    const { id } = await params
     
     if (!id) {
       return NextResponse.json(
@@ -78,7 +78,7 @@ export async function PUT(request, { params }) {
     }
     
     const { userId } = authResult
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
     const { amount, category, description, type, date } = body
     
@@ -159,7 +159,7 @@ export async function DELETE(request, { params }) {
       )
     }
     
-    const { id } = params
+    const { id } = await params
     
     if (!id) {
       return NextResponse.json(

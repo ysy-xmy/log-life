@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react"
 import { Calculator, Save, Plus, Minus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,7 +11,7 @@ import { accountingApi } from "@/lib/api-client"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 
-export default function AccountingForm({ onSave, initialData = null }) {
+const AccountingForm = forwardRef(function AccountingForm({ onSave, initialData = null }, ref) {
   const { user, isAuthenticated, loading: authLoading } = useAuth()
   const router = useRouter()
   const [type, setType] = useState(initialData?.type || 'expense')
@@ -20,6 +20,11 @@ export default function AccountingForm({ onSave, initialData = null }) {
   const [date, setDate] = useState(initialData?.date || getTodayString())
   const [note, setNote] = useState(initialData?.note || '')
   const [isSaving, setIsSaving] = useState(false)
+
+  // 暴露保存方法给父组件
+  useImperativeHandle(ref, () => ({
+    handleSave: handleSave
+  }))
 
   // 检查认证状态
   useEffect(() => {
@@ -177,22 +182,8 @@ export default function AccountingForm({ onSave, initialData = null }) {
           />
         </div>
 
-        {/* 保存按钮 */}
-        <div className="pt-4">
-          <button
-            onClick={handleSave}
-            disabled={isSaving || !amount || !category}
-            className={`w-full py-4 rounded-xl font-medium transition-colors ${
-              isSaving || !amount || !category
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : type === 'income'
-                ? 'bg-green-500 text-white hover:bg-green-600'
-                : 'bg-red-500 text-white hover:bg-red-600'
-            }`}
-          >
-            {isSaving ? '保存中...' : '保存记录'}
-          </button>
-        </div>
     </div>
   )
-}
+})
+
+export default AccountingForm

@@ -4,7 +4,7 @@ import { logService, accountingService } from '@/lib/supabase'
 // GET /api/logs/[id] - 获取单个日志
 export async function GET(request, { params }) {
   try {
-    const { id } = params
+    const { id } = await params
     
     if (!id) {
       return NextResponse.json(
@@ -86,7 +86,7 @@ export async function GET(request, { params }) {
 // PUT /api/logs/[id] - 更新日志
 export async function PUT(request, { params }) {
   try {
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
     const { content, mood, images, title, accounting } = body
     
@@ -166,6 +166,7 @@ export async function PUT(request, { params }) {
     if (accounting && accounting.enabled && accounting.amount && accounting.category) {
       // 需要创建或更新记账记录
       const accountingData = {
+        user_id: userId, // 添加user_id字段
         type: accounting.type,
         amount: parseFloat(accounting.amount),
         category: accounting.category,
@@ -173,18 +174,41 @@ export async function PUT(request, { params }) {
         date: accounting.date || new Date().toISOString().split('T')[0]
       }
       
-      if (currentLog.accounting_id) {
-        // 更新现有记账记录
-        await accountingService.updateAccountingRecord(currentLog.accounting_id, accountingData)
-      } else {
-        // 创建新的记账记录
-        const newAccounting = await accountingService.createAccountingRecord(userId, accountingData)
-        accountingId = newAccounting.id
+      try {
+        if (currentLog.accounting_id) {
+          // 更新现有记账记录
+          console.log('更新现有记账记录:', currentLog.accounting_id, accountingData)
+          await accountingService.updateAccountingRecord(currentLog.accounting_id, accountingData)
+        } else {
+          // 创建新的记账记录
+          console.log('创建新的记账记录:', accountingData)
+          const newAccounting = await accountingService.createAccountingRecord(accountingData)
+          accountingId = newAccounting.id
+          console.log('记账记录创建成功:', accountingId)
+        }
+      } catch (accountingError) {
+        console.error('处理记账信息失败:', accountingError)
+        // 记账失败不影响日志更新，但需要记录错误
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: '记账信息处理失败',
+            message: accountingError.message,
+            details: '请检查accounting表是否存在且结构正确'
+          },
+          { status: 500 }
+        )
       }
     } else if (currentLog.accounting_id) {
       // 如果原来有记账记录但现在不需要了，删除记账记录
-      await accountingService.deleteAccountingRecord(currentLog.accounting_id)
-      accountingId = null
+      try {
+        console.log('删除记账记录:', currentLog.accounting_id)
+        await accountingService.deleteAccountingRecord(currentLog.accounting_id)
+        accountingId = null
+      } catch (deleteError) {
+        console.error('删除记账记录失败:', deleteError)
+        // 删除失败不影响日志更新
+      }
     }
     
     // 准备更新数据
@@ -222,7 +246,7 @@ export async function PUT(request, { params }) {
 // DELETE /api/logs/[id] - 删除日志
 export async function DELETE(request, { params }) {
   try {
-    const { id } = params
+    const { id } = await params
     
     if (!id) {
       return NextResponse.json(
