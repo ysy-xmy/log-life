@@ -152,7 +152,7 @@ function LogsPageContent() {
       </div>
 
       {/* 日志列表 - 使用flex-1让列表区域自适应剩余高度 */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-hide">
         <LogList 
           onEdit={handleLogEdit}
           onDelete={handleLogDelete}
