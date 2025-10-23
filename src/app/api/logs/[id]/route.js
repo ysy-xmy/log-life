@@ -217,8 +217,7 @@ export async function PUT(request, { params }) {
       content: content.trim(),
       mood: mood || null,
       images: images || [],
-      accounting_id: accountingId,
-      updated_at: new Date().toISOString()
+      accounting_id: accountingId
     }
     
     // 更新日志

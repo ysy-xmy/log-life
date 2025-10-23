@@ -103,8 +103,7 @@ export async function POST(request) {
       content: content.trim(),
       mood: mood || null,
       images: images || [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      created_at: new Date().toISOString()
     }
     
     // 如果有记账信息，先创建记账记录
