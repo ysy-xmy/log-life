@@ -18,6 +18,23 @@ export default function AccountingList({ onEdit, onDelete, refreshTrigger, newRe
   const { getCachedData, setCachedData, shouldRefresh, addToCache, updateInCache, removeFromCache } = useCache()
   const [filterType, setFilterType] = useState('all')
   const [filterCategory, setFilterCategory] = useState('all')
+
+  // 当类型筛选改变时，检查类别筛选是否需要重置
+  const handleFilterTypeChange = (newType) => {
+    setFilterType(newType)
+    
+    // 如果当前选择的类别不匹配新的类型，重置为"全部"
+    if (filterCategory !== 'all') {
+      const isIncomeCategory = ACCOUNTING_CATEGORIES.income.some(cat => cat.id === filterCategory)
+      const isExpenseCategory = ACCOUNTING_CATEGORIES.expense.some(cat => cat.id === filterCategory)
+      
+      if (newType === 'income' && !isIncomeCategory) {
+        setFilterCategory('all')
+      } else if (newType === 'expense' && !isExpenseCategory) {
+        setFilterCategory('all')
+      }
+    }
+  }
   
   // 从缓存获取数据
   const cachedData = getCachedData('accounting')
@@ -220,34 +237,130 @@ export default function AccountingList({ onEdit, onDelete, refreshTrigger, newRe
 
       {/* 过滤器 */}
       <div className="bg-white rounded-xl p-4">
-        <div className="flex items-center space-x-2 mb-3">
-          <Filter className="h-4 w-4 text-gray-500" />
-          <span className="text-sm font-medium text-gray-700">筛选</span>
+
+        
+        {/* 类型筛选 - 按钮式 */}
+        <div className="mb-3">
+          <div className="text-xs text-gray-500 mb-2">类型</div>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => handleFilterTypeChange('all')}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                filterType === 'all'
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              全部
+            </button>
+            <button
+              onClick={() => handleFilterTypeChange('income')}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                filterType === 'income'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <Plus className="h-3 w-3 inline mr-1" />
+              收入
+            </button>
+            <button
+              onClick={() => handleFilterTypeChange('expense')}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                filterType === 'expense'
+                  ? 'bg-red-500 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <Minus className="h-3 w-3 inline mr-1" />
+              支出
+            </button>
+          </div>
         </div>
-        <div className="flex space-x-2">
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="flex-1 px-3 py-2 bg-gray-50 rounded-lg text-sm border-0 focus:outline-none focus:ring-2 focus:ring-gray-200"
-          >
-            <option value="all">全部类型</option>
-            <option value="income">收入</option>
-            <option value="expense">支出</option>
-          </select>
-          
-          <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="flex-1 px-3 py-2 bg-gray-50 rounded-lg text-sm border-0 focus:outline-none focus:ring-2 focus:ring-gray-200"
-          >
-            <option value="all">全部类别</option>
-            {ACCOUNTING_CATEGORIES.income.map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
+
+        {/* 类别筛选 - 滚动式按钮组 */}
+        <div>
+          <div className="text-xs text-gray-500 mb-2">类别</div>
+          <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide">
+            <button
+              onClick={() => setFilterCategory('all')}
+              className={`flex-shrink-0 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                filterCategory === 'all'
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              全部
+            </button>
+            
+            {/* 根据类型筛选显示对应的类别 */}
+            {filterType === 'all' && (
+              <>
+                {/* 收入类别 */}
+                {ACCOUNTING_CATEGORIES.income.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setFilterCategory(cat.id)}
+                    className={`flex-shrink-0 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                      filterCategory === cat.id
+                        ? 'bg-green-100 text-green-700 border border-green-200'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    <span className="mr-1">{cat.icon}</span>
+                    {cat.name}
+                  </button>
+                ))}
+                {/* 支出类别 */}
+                {ACCOUNTING_CATEGORIES.expense.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setFilterCategory(cat.id)}
+                    className={`flex-shrink-0 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                      filterCategory === cat.id
+                        ? 'bg-red-100 text-red-700 border border-red-200'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    <span className="mr-1">{cat.icon}</span>
+                    {cat.name}
+                  </button>
+                ))}
+              </>
+            )}
+            
+            {/* 只显示收入类别 */}
+            {filterType === 'income' && ACCOUNTING_CATEGORIES.income.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setFilterCategory(cat.id)}
+                className={`flex-shrink-0 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                  filterCategory === cat.id
+                    ? 'bg-green-100 text-green-700 border border-green-200'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span className="mr-1">{cat.icon}</span>
+                {cat.name}
+              </button>
             ))}
-            {ACCOUNTING_CATEGORIES.expense.map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            
+            {/* 只显示支出类别 */}
+            {filterType === 'expense' && ACCOUNTING_CATEGORIES.expense.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setFilterCategory(cat.id)}
+                className={`flex-shrink-0 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                  filterCategory === cat.id
+                    ? 'bg-red-100 text-red-700 border border-red-200'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span className="mr-1">{cat.icon}</span>
+                {cat.name}
+              </button>
             ))}
-          </select>
+          </div>
         </div>
       </div>
 
@@ -293,7 +406,7 @@ export default function AccountingList({ onEdit, onDelete, refreshTrigger, newRe
                   return (
                     <div key={record.id} className="bg-white rounded-xl p-4 hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start">
-                        <div className="flex items-center space-x-3 flex-1">
+                        <div className="flex items-center space-x-3 w-4/5">
                           <div className={`p-2 rounded-full ${record.type === 'income' ? 'bg-green-100' : 'bg-red-100'}`}>
                             {record.type === 'income' ? (
                               <Plus className="h-4 w-4 text-green-600" />
@@ -316,11 +429,8 @@ export default function AccountingList({ onEdit, onDelete, refreshTrigger, newRe
                           </div>
                         </div>
                         
-                        <div className="flex items-center space-x-2">
-                          <span className={`text-lg font-semibold ${record.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                            {record.type === 'income' ? '+' : '-'}¥{record.amount.toFixed(0)}
-                          </span>
-                          <div className="flex space-x-1">
+                        <div className="flex items-center space-x-2 flex-col">
+                        <div className="flex space-x-1">
                             <button
                               onClick={() => onEdit && onEdit(record)}
                               className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
@@ -334,6 +444,10 @@ export default function AccountingList({ onEdit, onDelete, refreshTrigger, newRe
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
+                          <span className={`text-lg font-semibold ${record.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                            {record.type === 'income' ? '+' : '-'}¥{record.amount.toFixed(0)}
+                          </span>
+
                         </div>
                       </div>
                     </div>

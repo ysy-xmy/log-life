@@ -63,7 +63,7 @@ function LogsPageContent() {
     }
   }, [searchParams, handleLogEdit])
 
-  const handleLogSave = (savedLog) => {
+  const handleLogSave = async (savedLog) => {
     setEditingLog(null)
     setRefreshKey(prev => prev + 1)
     // 如果不是编辑模式，将新日志传递给LogList组件
@@ -195,8 +195,8 @@ function LogsPageContent() {
           <div className="flex-1 overflow-y-auto p-4">
             <LogForm 
               ref={logFormRef}
-              onSave={(savedLog) => {
-                handleLogSave(savedLog)
+              onSave={async (savedLog) => {
+                await handleLogSave(savedLog)
                 handleCloseLogForm()
               }}
               initialData={editingLog}

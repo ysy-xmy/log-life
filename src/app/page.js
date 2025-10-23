@@ -60,12 +60,12 @@ export default function Home() {
     }
   }, [loading, isAuthenticated, router])
 
-  const handleLogSave = () => {
+  const handleLogSave = async (savedLog) => {
     setShowLogForm(false)
     fetchRecentRecords(true) // 强制刷新最近记录
   }
 
-  const handleAccountingSave = () => {
+  const handleAccountingSave = async (savedRecord) => {
     setShowAccountingForm(false)
     fetchRecentRecords(true) // 强制刷新最近记录
   }
