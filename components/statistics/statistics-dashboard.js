@@ -286,7 +286,7 @@ export default function StatisticsDashboard() {
       {refreshIndicator}
 
       {/* 主要内容 */}
-      <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4 scrollbar-hide">
         {/* 底部导航 */}
         <div className="flex bg-white rounded-xl p-1 shadow-sm">
           <button

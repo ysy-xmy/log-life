@@ -92,7 +92,7 @@ export default function AccountingPage() {
           </div>
 
           {/* 主要内容 - 可滚动区域 */}
-          <div className="flex-1 overflow-y-auto px-4 py-4">
+          <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-hide">
             {currentView === 'list' ? (
               <AccountingList 
                 refreshTrigger={refreshKey}
