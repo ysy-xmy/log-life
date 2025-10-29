@@ -57,6 +57,11 @@ const LogForm = forwardRef(function LogForm({ onSave, initialData = null }, ref)
   const [moodSelectorPosition, setMoodSelectorPosition] = useState({ top: 0, left: 0 })
   const moodSelectorRef = useRef(null)
   
+  // 记账开关防抖 ref
+  const accountingToggleRef = useRef(null)
+  // 跟踪当前编辑的日志 ID，防止重复初始化
+  const currentLogIdRef = useRef(null)
+  
   // 记账相关状态
   const [hasAccounting, setHasAccounting] = useState(false)
   const [accountingType, setAccountingType] = useState('expense') // 'income' 或 'expense'
@@ -69,44 +74,51 @@ const LogForm = forwardRef(function LogForm({ onSave, initialData = null }, ref)
     handleSave: handleSave
   }))
 
-  // 当initialData变化时，更新表单数据
+  // 当initialData变化时，更新表单数据（仅在日志ID变化时重置）
   useEffect(() => {
-    if (initialData) {
-      console.log('编辑日志 - initialData:', initialData)
-      setContent(initialData.content || "")
-      const moodData = initialData.moods || initialData.mood
-      const parsedMoods = parseMoodsFromInitialData(moodData)
-      console.log('编辑日志 - 原始心情数据:', moodData)
-      console.log('编辑日志 - 解析后心情数据:', parsedMoods)
-      setMoods(parsedMoods)
-      setImages(initialData.images || [])
+    const logId = initialData?.id || null
+    
+    // 只有当日志ID真正变化时才重置状态（切换到了不同的日志，或者是新建）
+    if (currentLogIdRef.current !== logId) {
+      currentLogIdRef.current = logId
       
-      // 处理记账信息回显
-      if (initialData.accounting) {
-        console.log('编辑日志 - 记账信息:', initialData.accounting)
-        setHasAccounting(true)
-        setAccountingType(initialData.accounting.type || 'expense')
-        setAccountingAmount(initialData.accounting.amount?.toString() || "")
-        setAccountingCategory(initialData.accounting.category || "")
-        setAccountingNote(initialData.accounting.description || "")
+      if (initialData) {
+        console.log('编辑日志 - initialData:', initialData)
+        setContent(initialData.content || "")
+        const moodData = initialData.moods || initialData.mood
+        const parsedMoods = parseMoodsFromInitialData(moodData)
+        console.log('编辑日志 - 原始心情数据:', moodData)
+        console.log('编辑日志 - 解析后心情数据:', parsedMoods)
+        setMoods(parsedMoods)
+        setImages(initialData.images || [])
+        
+        // 处理记账信息回显
+        if (initialData.accounting) {
+          console.log('编辑日志 - 记账信息:', initialData.accounting)
+          setHasAccounting(true)
+          setAccountingType(initialData.accounting.type || 'expense')
+          setAccountingAmount(initialData.accounting.amount?.toString() || "")
+          setAccountingCategory(initialData.accounting.category || "")
+          setAccountingNote(initialData.accounting.description || "")
+        } else {
+          // 重置记账信息
+          setHasAccounting(false)
+          setAccountingType('expense')
+          setAccountingAmount("")
+          setAccountingCategory("")
+          setAccountingNote("")
+        }
       } else {
-        // 重置记账信息
+        // 重置表单（新建日志）
+        setContent("")
+        setMoods([])
+        setImages([])
         setHasAccounting(false)
         setAccountingType('expense')
         setAccountingAmount("")
         setAccountingCategory("")
         setAccountingNote("")
       }
-    } else {
-      // 重置表单
-      setContent("")
-      setMoods([])
-      setImages([])
-      setHasAccounting(false)
-      setAccountingType('expense')
-      setAccountingAmount("")
-      setAccountingCategory("")
-      setAccountingNote("")
     }
   }, [initialData])
 
@@ -504,15 +516,37 @@ const LogForm = forwardRef(function LogForm({ onSave, initialData = null }, ref)
           <DollarSign className="h-5 w-5 text-gray-400" />
           <span className="text-sm text-gray-600">记账</span>
           <button
-            onClick={() => setHasAccounting(!hasAccounting)}
+            onPointerDown={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              
+              // 防抖：300ms 内只允许触发一次
+              const now = Date.now()
+              if (accountingToggleRef.current && now - accountingToggleRef.current < 300) {
+                return
+              }
+              accountingToggleRef.current = now
+              
+              if (!isSaving) {
+                setHasAccounting(prev => !prev)
+              }
+            }}
+            onClick={(e) => {
+              // 阻止默认点击事件，因为我们已经用 onPointerDown 处理了
+              e.preventDefault()
+              e.stopPropagation()
+            }}
             disabled={isSaving}
             className={`ml-auto w-12 h-6 rounded-full transition-colors ${
               hasAccounting ? 'bg-gray-800' : 'bg-gray-200'
             } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+            style={{ touchAction: 'manipulation' }}
           >
-            <div className={`w-5 h-5 bg-white rounded-full transition-transform ${
-              hasAccounting ? 'translate-x-6' : 'translate-x-0.5'
-            }`} />
+            <div 
+              className={`w-5 h-5 bg-white rounded-full transition-transform pointer-events-none ${
+                hasAccounting ? 'translate-x-6' : 'translate-x-0.5'
+              }`}
+            />
           </button>
         </div>
 
