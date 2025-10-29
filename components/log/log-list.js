@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Calendar, Edit, Trash2, Image as ImageIcon, Heart, ChevronDown, ChevronUp, Plus, Minus, DollarSign } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,6 +16,31 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
   const { getCachedData, setCachedData, shouldRefresh, addToCache, updateInCache, removeFromCache } = useCache()
   const [expandedDates, setExpandedDates] = useState(new Set())
   
+  // 分页状态
+  const [page, setPage] = useState(1)
+  const pageRef = useRef(1) // 使用 ref 存储当前页码，确保闭包中获取最新值
+  const [hasMore, setHasMore] = useState(true)
+  const hasMoreRef = useRef(true) // 使用 ref 存储是否有更多数据
+  const [loadingMore, setLoadingMore] = useState(false)
+  const loadingMoreRef = useRef(false) // 使用 ref 存储加载状态，避免闭包问题
+  const isLoadingRef = useRef(false) // 使用 ref 存储初始加载状态
+  const observerTarget = useRef(null)
+  const observerRef = useRef(null) // 存储 IntersectionObserver 实例
+  const isInitializedRef = useRef(false) // 标记是否已初始化
+  
+  // 同步 ref 和 state
+  useEffect(() => {
+    pageRef.current = page
+  }, [page])
+  
+  useEffect(() => {
+    loadingMoreRef.current = loadingMore
+  }, [loadingMore])
+  
+  useEffect(() => {
+    hasMoreRef.current = hasMore
+  }, [hasMore])
+  
   // 从缓存获取数据
   const cachedData = getCachedData('logs')
   const [logs, setLogs] = useState(cachedData.data || [])
@@ -23,60 +48,439 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
   // 下拉刷新处理函数
   const handleRefresh = async () => {
     if (isAuthenticated()) {
-      await loadLogs(true)
+      await loadLogs(true, true)
     }
   }
 
   const { containerRef, isRefreshing, refreshIndicator, isLoading, setLoading, loadingIndicator } = usePullRefresh(handleRefresh, 100, "加载中...")
+  
+  // 同步 isLoading 到 ref（必须在 usePullRefresh 之后）
+  useEffect(() => {
+    isLoadingRef.current = isLoading
+  }, [isLoading])
 
   // 处理新日志添加
   useEffect(() => {
     if (newLog) {
       addToCache('logs', newLog)
-      setLogs(prev => [newLog, ...prev])
+      // 去重：如果日志已存在则不再添加
+      setLogs(prev => {
+        const exists = prev.some(log => log.id === newLog.id)
+        if (exists) {
+          // 如果已存在，则更新该日志而不是添加
+          return prev.map(log => log.id === newLog.id ? newLog : log)
+        }
+        return [newLog, ...prev]
+      })
     }
   }, [newLog, addToCache])
 
+  const loadLogs = useCallback(async (forceRefresh = false, reset = false) => {
+    try {
+      if (reset) {
+        setLoading(true)
+        setHasMore(true)
+      }
+      
+      if (forceRefresh && reset) {
+        setCachedData('logs', [], true) // 设置loading状态
+      }
+      
+      // 重置时总是从第1页开始
+      const currentPage = reset ? 1 : page
+      const response = await logsApi.getLogs(searchQuery, currentPage, 10)
+      
+      if (response.success) {
+        if (reset) {
+        setLogs(response.data)
+        setCachedData('logs', response.data, false) // 更新缓存
+        } else {
+          // 去重：只添加不存在于当前列表中的日志
+          setLogs(prev => {
+            const existingIds = new Set(prev.map(log => log.id))
+            const newLogs = response.data.filter(log => !existingIds.has(log.id))
+            return [...prev, ...newLogs]
+          })
+        }
+        
+        // 更新分页信息
+        if (response.pagination) {
+          setHasMore(response.pagination.hasMore)
+          hasMoreRef.current = response.pagination.hasMore
+          if (reset) {
+            const nextPage = response.pagination.hasMore ? 2 : 1
+            setPage(nextPage)
+            pageRef.current = nextPage
+            console.log('📋 初始加载完成，设置页码为:', nextPage, 'hasMore:', response.pagination.hasMore, 'ref值:', pageRef.current)
+          } else {
+            setPage(prev => {
+              const nextPage = prev + 1
+              pageRef.current = nextPage
+              return nextPage
+            })
+          }
+        }
+      } else {
+        console.error('获取日志失败:', response.error)
+        if (reset) {
+        setLogs([])
+        setCachedData('logs', [], false)
+        }
+      }
+    } catch (error) {
+      console.error('加载日志失败:', error)
+      if (reset) {
+      setLogs([])
+      setCachedData('logs', [], false)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [searchQuery, page, setCachedData])
+
+  const loadMore = useCallback(async () => {
+    // 使用 ref 检查，避免闭包问题
+    if (loadingMoreRef.current || !hasMore) {
+      console.log('跳过加载：', { loadingMore: loadingMoreRef.current, hasMore })
+      return
+    }
+    
+    // 先读取当前页码（在设置 loading 之前）
+    const currentPage = pageRef.current
+    console.log('加载更多日志，当前页码:', currentPage, 'ref值:', pageRef.current)
+    
+    // 立即更新 ref 和 state，防止并发调用
+    loadingMoreRef.current = true
+    setLoadingMore(true)
+    
+    try {
+      const response = await logsApi.getLogs(searchQuery, currentPage, 10)
+      console.log('加载更多响应:', { 
+        success: response.success, 
+        dataCount: response.data?.length, 
+        pagination: response.pagination 
+      })
+      
+      if (response.success) {
+        // 去重：只添加不存在于当前列表中的日志
+        let addedNewLogs = false
+        setLogs(prev => {
+          const existingIds = new Set(prev.map(log => log.id))
+          const newLogs = response.data.filter(log => !existingIds.has(log.id))
+          addedNewLogs = newLogs.length > 0
+          return [...prev, ...newLogs]
+        })
+        
+        // 更新分页信息
+        if (response.pagination) {
+          // 只有当还有更多数据时才更新页码
+          if (response.pagination.hasMore) {
+            const nextPage = currentPage + 1
+            // 先更新 ref，再更新 state，确保下次调用时获取最新值
+            pageRef.current = nextPage
+            setPage(nextPage)
+            setHasMore(true)
+            console.log('页码已更新为:', nextPage, 'ref当前值:', pageRef.current)
+          } else {
+            console.log('没有更多数据了')
+            setHasMore(false)
+          }
+        } else {
+          setHasMore(false)
+        }
+        
+        if (!addedNewLogs && response.data.length === 0) {
+          console.warn('加载的页面没有新数据，可能已到达末尾')
+          setHasMore(false)
+        }
+      } else {
+        console.error('加载更多日志失败:', response.error)
+        setHasMore(false)
+      }
+    } catch (error) {
+      console.error('加载更多日志失败:', error)
+      setHasMore(false)
+    } finally {
+      // 延迟清除 loading 状态，确保 DOM 更新完成，避免 IntersectionObserver 立即触发
+      setTimeout(() => {
+        loadingMoreRef.current = false
+        setLoadingMore(false)
+      }, 100)
+    }
+  }, [searchQuery, hasMore])
+
+  // 搜索或刷新时重置分页
   useEffect(() => {
-    if (isAuthenticated()) {
-      // 如果有缓存数据且不需要刷新，直接使用缓存
-      if (cachedData.data.length > 0 && !shouldRefresh('logs') && refreshKey === 0) {
-        setLogs(cachedData.data)
+    if (!isAuthenticated()) {
+      setLoading(false)
+      return
+    }
+    
+    // 只在搜索查询、refreshKey 或认证状态变化时才重置
+    const shouldReset = !isInitializedRef.current || refreshKey > 0
+    
+    if (shouldReset) {
+      console.log('🔄 触发初始化/重置，refreshKey:', refreshKey, 'searchQuery:', searchQuery)
+      // 重置分页状态
+      setPage(1)
+      pageRef.current = 1
+      setHasMore(true)
+      isInitializedRef.current = true
+    }
+    
+    const loadInitialLogs = async () => {
+      // 检查缓存
+      const currentCachedData = getCachedData('logs')
+      const needRefresh = shouldRefresh('logs')
+      
+      // 只有在需要重置时才检查缓存和使用缓存
+      if (shouldReset && currentCachedData.data.length > 0 && !needRefresh && refreshKey === 0 && !searchQuery.trim()) {
+        console.log('💾 使用缓存数据，数量:', currentCachedData.data.length)
+        setLogs(currentCachedData.data)
+        // 使用缓存时，需要设置页码为2（因为已加载第1页数据）
+        pageRef.current = 2
+        setPage(2)
+        hasMoreRef.current = true
+        setHasMore(true)
         setLoading(false)
         return
       }
       
-      // 否则加载数据，如果refreshKey > 0则强制刷新
-      loadLogs(refreshKey > 0)
-    } else {
-      setLoading(false)
+      // 只有在需要重置时才加载数据
+      if (shouldReset) {
+        console.log('🔄 重新加载数据，refreshKey:', refreshKey)
+        await loadLogs(refreshKey > 0, true)
+      }
     }
-  }, [searchQuery, isAuthenticated, refreshKey])
+    
+    loadInitialLogs()
+  }, [searchQuery, isAuthenticated, refreshKey]) // 移除可能导致频繁触发的依赖
 
-  const loadLogs = async (forceRefresh = false) => {
-    try {
-      setLoading(true)
-      if (forceRefresh) {
-        setCachedData('logs', [], true) // 设置loading状态
+  // 滚动加载更多 - 使用 useRef 存储 isObserving，避免闭包问题
+  const isObservingRef = useRef(false)
+  
+  // 滚动加载更多
+  useEffect(() => {
+    // 清理现有的 observer
+    const cleanup = () => {
+      const observer = observerRef.current
+      if (observer) {
+        const target = observerTarget.current
+        if (target) {
+          observer.unobserve(target)
+        }
+        observer.disconnect()
+        observerRef.current = null
       }
-      
-      const response = await logsApi.getLogs(searchQuery)
-      if (response.success) {
-        setLogs(response.data)
-        setCachedData('logs', response.data, false) // 更新缓存
-      } else {
-        console.error('获取日志失败:', response.error)
-        setLogs([])
-        setCachedData('logs', [], false)
-      }
-    } catch (error) {
-      console.error('加载日志失败:', error)
-      setLogs([])
-      setCachedData('logs', [], false)
-    } finally {
-      setLoading(false)
     }
-  }
+    
+    // 如果没有更多数据，清理 observer
+    if (!hasMore) {
+      cleanup()
+      return cleanup
+    }
+
+    // 延迟创建，确保 DOM 已更新
+    const timer = setTimeout(() => {
+      const target = observerTarget.current
+      if (!target) {
+        console.log('❌ IntersectionObserver 未创建：观察目标不存在')
+        return
+      }
+
+      console.log('✅ 创建 IntersectionObserver，目标元素:', target, 'hasMore:', hasMoreRef.current)
+      
+      const observer = new IntersectionObserver(
+        async (entries) => {
+          const entry = entries[0]
+          console.log('🔍 IntersectionObserver 触发，isIntersecting:', entry.isIntersecting, 'intersectionRatio:', entry.intersectionRatio)
+          
+          if (!entry.isIntersecting) {
+            return
+          }
+          
+          // 从 ref 读取最新状态
+          if (loadingMoreRef.current || !hasMoreRef.current || isLoadingRef.current || isObservingRef.current) {
+            console.log('⏭️ 跳过加载:', {
+              loadingMore: loadingMoreRef.current,
+              hasMore: hasMoreRef.current,
+              isLoading: isLoadingRef.current,
+              isObserving: isObservingRef.current
+            })
+            return
+          }
+          
+          const currentPage = pageRef.current
+          console.log('📄 开始加载，读取页码:', currentPage, 'ref当前值:', pageRef.current, 'page state:', page)
+          
+          // 检查页码是否有效，如果还是1，说明没有正确初始化，强制设为2
+          if (currentPage === 1) {
+            console.warn('⚠️ 页码仍为1，可能是初始化问题，强制设为2')
+            pageRef.current = 2
+            const correctedPage = 2
+            const correctedNextPage = correctedPage + 1
+            pageRef.current = correctedNextPage
+            console.log('🔧 修正后，读取页码:', correctedPage, '下次页码:', correctedNextPage)
+            
+            // 使用修正后的页码继续
+            isObservingRef.current = true
+            loadingMoreRef.current = true
+            setLoadingMore(true)
+            
+            try {
+              console.log('📤 发起请求，页码:', correctedPage)
+              const response = await logsApi.getLogs(searchQuery, correctedPage, 10)
+              console.log('📦 加载响应:', { 
+                success: response.success, 
+                count: response.data?.length, 
+                hasMore: response.pagination?.hasMore 
+              })
+              
+              if (response.success && response.data) {
+                setLogs(prev => {
+                  console.log('📊 当前已有日志:', prev.length, '条')
+                  console.log('📥 收到新数据:', response.data.length, '条')
+                  const existingIds = new Set(prev.map(log => log.id))
+                  
+                  const newLogs = response.data.filter(log => !existingIds.has(log.id))
+                  console.log('➕ 过滤后新日志:', newLogs.length, '条')
+                  
+                  if (newLogs.length === 0 && response.data.length > 0) {
+                    console.warn('⚠️ 所有新数据都被去重过滤掉了！可能ID重复')
+                    console.log('新数据ID:', response.data.map(log => log.id).slice(0, 5))
+                  }
+                  
+                  const result = [...prev, ...newLogs]
+                  console.log('📋 更新后总数:', result.length, '条')
+                  return result
+                })
+                
+                if (response.pagination?.hasMore) {
+                  hasMoreRef.current = true
+                  setPage(correctedNextPage)
+                  setHasMore(true)
+                  console.log('✅ 页码已更新为:', correctedNextPage)
+                } else {
+                  pageRef.current = correctedPage
+                  hasMoreRef.current = false
+                  setHasMore(false)
+                  console.log('🔚 没有更多数据了')
+                }
+              } else {
+                pageRef.current = correctedPage
+                hasMoreRef.current = false
+                setHasMore(false)
+                console.error('❌ 加载失败')
+              }
+            } catch (error) {
+              console.error('❌ 加载错误:', error)
+              pageRef.current = correctedPage
+              hasMoreRef.current = false
+              setHasMore(false)
+            } finally {
+              setTimeout(() => {
+                loadingMoreRef.current = false
+                setLoadingMore(false)
+                isObservingRef.current = false
+                console.log('🔄 加载状态已清除')
+              }, 50)
+            }
+            return
+          }
+          
+          if (currentPage < 1) {
+            console.error('❌ 页码错误，重置为2:', currentPage)
+            pageRef.current = 2
+            return
+          }
+          
+          // 预先更新页码（用于下次请求）
+          const nextPage = currentPage + 1
+          pageRef.current = nextPage
+          console.log('🔄 预先更新页码为:', nextPage, '即将请求页码:', currentPage)
+          
+          isObservingRef.current = true
+          loadingMoreRef.current = true
+          setLoadingMore(true)
+          
+          try {
+            console.log('📤 发起请求，页码:', currentPage, 'URL:', `/api/logs?search=${searchQuery}&page=${currentPage}&limit=10`)
+            const response = await logsApi.getLogs(searchQuery, currentPage, 10)
+            console.log('📦 加载响应:', { 
+              success: response.success, 
+              count: response.data?.length, 
+              hasMore: response.pagination?.hasMore 
+            })
+            
+            if (response.success && response.data) {
+              // 去重并添加新数据
+              setLogs(prev => {
+                console.log('📊 当前已有日志:', prev.length, '条')
+                console.log('📥 收到新数据:', response.data.length, '条')
+                const existingIds = new Set(prev.map(log => log.id))
+                console.log('🆔 已有日志ID:', Array.from(existingIds).slice(0, 5), '...')
+                
+                const newLogs = response.data.filter(log => !existingIds.has(log.id))
+                console.log('➕ 过滤后新日志:', newLogs.length, '条')
+                
+                if (newLogs.length === 0 && response.data.length > 0) {
+                  console.warn('⚠️ 所有新数据都被去重过滤掉了！可能ID重复')
+                  console.log('新数据ID:', response.data.map(log => log.id).slice(0, 5))
+                }
+                
+                const result = [...prev, ...newLogs]
+                console.log('📋 更新后总数:', result.length, '条')
+                return result
+              })
+              
+              // 更新分页状态
+              if (response.pagination?.hasMore) {
+                hasMoreRef.current = true
+                setPage(nextPage)
+                setHasMore(true)
+                console.log('✅ 页码已更新为:', nextPage)
+              } else {
+                pageRef.current = currentPage // 回退页码
+                hasMoreRef.current = false
+                setHasMore(false)
+                console.log('🔚 没有更多数据了')
+              }
+            } else {
+              pageRef.current = currentPage
+              hasMoreRef.current = false
+              setHasMore(false)
+              console.error('❌ 加载失败')
+            }
+          } catch (error) {
+            console.error('❌ 加载错误:', error)
+            pageRef.current = currentPage
+            hasMoreRef.current = false
+            setHasMore(false)
+          } finally {
+            setTimeout(() => {
+              loadingMoreRef.current = false
+              setLoadingMore(false)
+              isObservingRef.current = false
+              console.log('🔄 加载状态已清除')
+            }, 50)
+          }
+        },
+        { 
+          threshold: 0.1, 
+          rootMargin: '200px' // 提前更多触发，确保能加载
+        }
+      )
+
+      observer.observe(target)
+      observerRef.current = observer
+      console.log('👀 IntersectionObserver 已观察')
+    }, 200) // 增加延迟，确保 DOM 完全渲染
+
+    return () => {
+      clearTimeout(timer)
+      cleanup()
+    }
+  }, [searchQuery, hasMore]) // 依赖 searchQuery 和 hasMore
 
   const handleDelete = async (logId) => {
     if (confirm('确定要删除这条日志吗？')) {
@@ -162,10 +566,21 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
     return ''
   }
 
-  // 按日期分组日志
+  // 按日期分组日志（去重）
   const groupLogsByDate = (logs) => {
+    // 先按 ID 去重，保留最新的
+    const uniqueLogs = []
+    const seenIds = new Set()
+    for (let i = 0; i < logs.length; i++) {
+      const log = logs[i]
+      if (!seenIds.has(log.id)) {
+        seenIds.add(log.id)
+        uniqueLogs.push(log)
+      }
+    }
+    
     const grouped = {}
-    logs.forEach(log => {
+    uniqueLogs.forEach(log => {
       const dateKey = formatDate(log.created_at || log.createdAt || log.date)
       if (!grouped[dateKey]) {
         grouped[dateKey] = []
@@ -217,6 +632,11 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
 
   // 获取分组后的日志
   const groupedLogs = groupLogsByDate(filteredLogs)
+  
+  // 调试：打印日志数量
+  useEffect(() => {
+    console.log('🔍 日志状态变化 - 总数:', logs.length, '过滤后:', filteredLogs.length, '分组后:', Object.keys(groupedLogs).length, '个日期组')
+  }, [logs.length, filteredLogs.length, Object.keys(groupedLogs).length])
 
   if (isLoading) {
     return loadingIndicator
@@ -378,6 +798,24 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
           </div>
         </div>
       ))}
+      
+      {/* 滚动加载观察目标和加载提示 */}
+      {hasMore && (
+        <div 
+          ref={observerTarget} 
+          className="flex justify-center items-center py-4"
+          style={{ minHeight: '50px' }} // 确保有足够高度可被观察
+        >
+          {loadingMore && (
+            <div className="text-sm text-gray-500">加载中...</div>
+          )}
+        </div>
+      )}
+      {!hasMore && logs.length > 0 && (
+        <div className="text-center py-4 text-sm text-gray-400">
+          没有更多了
+        </div>
+      )}
     </div>
   )
 }

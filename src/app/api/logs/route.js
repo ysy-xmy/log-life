@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { logService, accountingService } from '@/lib/supabase'
 import { extractAuthFromRequest } from '@/lib/auth-utils'
 
-// GET /api/logs - 获取日志列表
+// GET /api/logs - 获取日志列表（支持分页）
 export async function GET(request) {
   try {
     // 验证用户身份
@@ -20,15 +20,18 @@ export async function GET(request) {
     const { userId } = authResult
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search') || ''
+    const page = parseInt(searchParams.get('page') || '1', 10)
+    const limit = parseInt(searchParams.get('limit') || '10', 10)
     
-    // 获取带记账信息的日志
-    const logs = await logService.getLogsWithAccounting(userId)
+    // 获取总数（如果有搜索条件，需要先获取所有数据进行过滤）
+    let total = 0
+    let filteredLogs = []
     
-    // 如果有搜索条件，进行过滤
-    let filteredLogs = logs
     if (search.trim()) {
+      // 如果有搜索条件，获取所有日志进行过滤（对于搜索，我们可能需要获取更多数据）
+      const allLogs = await logService.getLogsWithAccounting(userId, 1, 1000) // 获取前1000条进行搜索
       const query = search.toLowerCase()
-      filteredLogs = logs.filter(log => {
+      filteredLogs = allLogs.filter(log => {
         const contentMatch = log.content.toLowerCase().includes(query)
         const titleMatch = log.title && log.title.toLowerCase().includes(query)
         
@@ -46,12 +49,28 @@ export async function GET(request) {
         
         return contentMatch || titleMatch || moodMatch
       })
+      
+      total = filteredLogs.length
+      // 对搜索结果进行分页
+      const from = (page - 1) * limit
+      const to = from + limit
+      filteredLogs = filteredLogs.slice(from, to)
+    } else {
+      // 没有搜索条件，使用数据库分页
+      filteredLogs = await logService.getLogsWithAccounting(userId, page, limit)
+      total = await logService.getLogsCount(userId)
     }
     
     return NextResponse.json({
       success: true,
       data: filteredLogs,
-      total: filteredLogs.length
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasMore: page * limit < total
+      }
     })
   } catch (error) {
     console.error('获取日志失败:', error)
