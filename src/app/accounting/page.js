@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import AccountingForm from "@/components/accounting/accounting-form"
 import AccountingList from "@/components/accounting/accounting-list"
-import { Calculator, Plus, List, ArrowLeft } from "lucide-react"
+import { Calculator, Plus, List, ArrowLeft, Save } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { usePreventScroll } from "@/lib/use-prevent-scroll"
 import { useRouter } from "next/navigation"
@@ -15,6 +15,7 @@ export default function AccountingPage() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [newRecord, setNewRecord] = useState(null)
   const [currentView, setCurrentView] = useState('list') // 'list' 或 'add'
+  const accountingFormRef = useRef(null)
 
   // 启用全局防滚动穿透功能
   usePreventScroll(true)
@@ -79,13 +80,25 @@ export default function AccountingPage() {
                 <h1 className="text-xl font-semibold text-gray-800">记账</h1>
               )}
               
-              {currentView === 'list' && (
+              {currentView === 'list' ? (
                 <button
                   onClick={handleAddNew}
                   className="flex items-center space-x-2 bg-gray-800 text-white px-4 py-2 rounded-full hover:bg-gray-700 transition-colors"
                 >
                   <Plus className="h-4 w-4" />
                   <span>记账</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    if (accountingFormRef.current) {
+                      accountingFormRef.current.handleSave()
+                    }
+                  }}
+                  className="flex items-center space-x-2 bg-gray-800 text-white px-4 py-2 rounded-full hover:bg-gray-700 transition-colors"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>{editingRecord ? '保存' : '确认'}</span>
                 </button>
               )}
             </div>
@@ -110,6 +123,7 @@ export default function AccountingPage() {
                     </h2>
                   </div>
                   <AccountingForm 
+                    ref={accountingFormRef}
                     onSave={handleRecordSave}
                     initialData={editingRecord}
                   />

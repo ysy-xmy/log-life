@@ -59,19 +59,24 @@ const AccountingForm = forwardRef(function AccountingForm({ onSave, initialData 
         description: note.trim(),
       }
 
-      let savedRecord
+      let response
       
       if (initialData) {
         // 更新现有记录
-        savedRecord = await accountingApi.updateRecord(initialData.id, recordData)
+        response = await accountingApi.updateRecord(initialData.id, recordData)
       } else {
         // 创建新记录
-        savedRecord = await accountingApi.createRecord(recordData)
+        response = await accountingApi.createRecord(recordData)
+      }
+      
+      // 检查响应是否成功
+      if (!response.success) {
+        throw new Error(response.error || '保存失败')
       }
       
       // 调用父组件的保存回调，传递保存的记录数据
       if (onSave) {
-        await onSave(savedRecord.data)
+        await onSave(response.data)
       }
       
       // 重置表单
