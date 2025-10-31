@@ -64,15 +64,17 @@ function LogsPageContent() {
   }, [searchParams, handleLogEdit])
 
   const handleLogSave = async (savedLog) => {
+    const wasEditing = !!editingLog
     setEditingLog(null)
     setRefreshKey(prev => prev + 1)
     // 如果不是编辑模式，将新日志传递给LogList组件
-    if (savedLog && !editingLog) {
+    if (savedLog && !wasEditing) {
       setNewLog(savedLog)
     }
     // 强制刷新日志列表
     console.log('日志保存成功，刷新列表')
-    // 清除URL参数
+    // 关闭表单并清除URL参数
+    setShowLogForm(false)
     router.push('/logs', { scroll: false })
   }
 
@@ -197,7 +199,6 @@ function LogsPageContent() {
               ref={logFormRef}
               onSave={async (savedLog) => {
                 await handleLogSave(savedLog)
-                handleCloseLogForm()
               }}
               initialData={editingLog}
             />

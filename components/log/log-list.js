@@ -44,6 +44,7 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
   // 从缓存获取数据
   const cachedData = getCachedData('logs')
   const [logs, setLogs] = useState(cachedData.data || [])
+  const [deletingLogId, setDeletingLogId] = useState(null)
 
   // 下拉刷新处理函数
   const handleRefresh = async () => {
@@ -484,6 +485,7 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
 
   const handleDelete = async (logId) => {
     if (confirm('确定要删除这条日志吗？')) {
+      setDeletingLogId(logId)
       try {
         const response = await logsApi.deleteLog(logId)
         if (response.success) {
@@ -492,12 +494,16 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
           setLogs(updatedLogs)
           removeFromCache('logs', logId)
           if (onDelete) onDelete(logId)
+          // 显示成功提示
+          alert('删除成功')
         } else {
           alert('删除失败：' + response.error)
         }
       } catch (error) {
         console.error('删除日志失败:', error)
         alert('删除失败，请重试')
+      } finally {
+        setDeletingLogId(null)
       }
     }
   }
@@ -722,9 +728,16 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
                         e.stopPropagation() // 阻止事件冒泡到卡片点击
                         handleDelete(log.id)
                       }}
-                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                      disabled={deletingLogId === log.id}
+                      className={`p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors ${
+                        deletingLogId === log.id ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      {deletingLogId === log.id ? (
+                        <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </div>
