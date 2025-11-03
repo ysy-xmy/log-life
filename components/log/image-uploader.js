@@ -81,7 +81,7 @@ export default function ImageUploader({ images = [], onImagesChange, maxImages =
     newFiles.forEach(file => {
       if (file.type.startsWith('image/')) {
         // 验证文件大小（限制为5MB）
-        if (file.size > 5 * 1024 * 1024) {
+        if (file.size > 20 * 1024 * 1024) {
           alert(`图片 ${file.name} 太大，请选择小于5MB的图片`)
           return
         }
