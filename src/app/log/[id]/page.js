@@ -4,12 +4,15 @@ import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { ArrowLeft, Edit, Trash2, Image as ImageIcon, X, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { MOOD_TAGS, formatDate, formatTime } from "@/lib/data"
 import { logsApi } from "@/lib/api-client"
 import { useAuth } from "@/lib/auth-context"
+import { useCache } from "@/lib/cache-context"
 
 export default function LogView() {
   const { user, isAuthenticated, loading } = useAuth()
+  const { getCachedData } = useCache()
   const router = useRouter()
   const params = useParams()
   const [log, setLog] = useState(null)
@@ -36,6 +39,18 @@ export default function LogView() {
         setLoadingLog(true)
         setError(null)
         
+        // 先从缓存中查找
+        const cachedLogs = getCachedData('logs')
+        const cachedLog = cachedLogs.data.find(l => l.id === params.id)
+        
+        if (cachedLog) {
+          console.log('从缓存加载日志:', params.id)
+          setLog(cachedLog)
+          setLoadingLog(false)
+          return
+        }
+        
+        // 缓存中没有，从API获取
         const response = await logsApi.getLog(params.id)
         if (response.success) {
           setLog(response.data)
@@ -53,7 +68,7 @@ export default function LogView() {
     if (params.id) {
       loadLog()
     }
-  }, [params.id])
+  }, [params.id, getCachedData])
 
   // 获取心情信息
   const getMoodInfo = (moodId) => {
@@ -166,8 +181,29 @@ export default function LogView() {
 
   if (loadingLog) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-gray-500">加载日志中...</div>
+      <div className="min-h-screen bg-white">
+        {/* 顶部导航栏 */}
+        <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-gray-100 px-4 py-3 z-40">
+          <div className="flex items-center justify-between">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => router.push('/logs')}
+              className="hover:bg-gray-100"
+            >
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              返回
+            </Button>
+            <h1 className="text-xl font-semibold text-gray-800">日志详情</h1>
+            <div className="w-20"></div>
+          </div>
+        </div>
+        <div className="flex justify-center items-center min-h-[calc(100vh-80px)]">
+          <div className="flex flex-col items-center space-y-3">
+            <LoadingSpinner size="lg" color="gray" />
+            <div className="text-gray-500">加载中...</div>
+          </div>
+        </div>
       </div>
     )
   }

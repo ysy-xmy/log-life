@@ -16,6 +16,7 @@ export default function StatisticsDashboard() {
   const [timeRange, setTimeRange] = useState('week')
   const [activeTab, setActiveTab] = useState('overview') // 'overview', 'logs', 'accounting'
   const { getCachedData, setCachedData, shouldRefresh } = useCache()
+  const { containerRef, refreshIndicator, isLoading, setLoading, loadingIndicator } = usePullRefresh(() => {}, 100, "加载中...")
 
   const fetchData = async () => {
     setLoading(true)
@@ -50,9 +51,7 @@ export default function StatisticsDashboard() {
     } else {
       setLoading(false)
     }
-  }, [getCachedData, shouldRefresh])
-
-  const { containerRef, refreshIndicator, isLoading, setLoading, loadingIndicator } = usePullRefresh(fetchData, 100, "加载中...")
+  }, [])
 
   const getDateRange = () => {
     const now = new Date()
@@ -265,10 +264,6 @@ export default function StatisticsDashboard() {
     }
   }
 
-  if (isLoading) {
-    return loadingIndicator
-  }
-
   const logStats = getLogStatistics()
   const accountingStats = getAccountingStatistics()
 
@@ -287,6 +282,11 @@ export default function StatisticsDashboard() {
 
       {/* 主要内容 */}
       <div ref={containerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4 scrollbar-hide">
+        {isLoading && logs.length === 0 && records.length === 0 && (
+          <div className="flex justify-center items-center py-20">
+            {loadingIndicator}
+          </div>
+        )}
         {/* 底部导航 */}
         <div className="flex bg-white rounded-xl p-1 shadow-sm">
           <button
