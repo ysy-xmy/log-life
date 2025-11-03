@@ -36,6 +36,13 @@ body {
   /* 禁用下拉刷新 */
   overscroll-behavior-y: none;
   -webkit-overflow-scrolling: touch;
+  /* 禁用缩放 */
+  touch-action: manipulation;
+  /* 禁用文本选择 */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 /* 禁用整个页面的下拉刷新 */
@@ -47,6 +54,14 @@ html, body {
 /* 禁用所有滚动容器的下拉刷新 */
 * {
   overscroll-behavior: none;
+}
+
+/* 允许输入框和文本域选择文本 */
+input, textarea {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
 }
 
 /* 防止自动填充的样式 */

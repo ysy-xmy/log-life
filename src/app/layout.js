@@ -10,6 +10,13 @@ export const metadata = {
   description: "一款面向个人用户的日志记录应用，帮助您记录日常生活轨迹，包括饮食、运动、心情等各类信息，并提供记账及统计功能。",
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="zh-CN">
