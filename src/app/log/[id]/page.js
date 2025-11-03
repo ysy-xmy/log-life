@@ -2,11 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { ArrowLeft, Calendar, Edit, Trash2, Image as ImageIcon } from "lucide-react"
+import { ArrowLeft, Edit, Trash2, Image as ImageIcon, X, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { MOOD_TAGS } from "@/lib/data"
-import { formatDate, formatTime } from "@/lib/data"
+import { MOOD_TAGS, formatDate, formatTime } from "@/lib/data"
 import { logsApi } from "@/lib/api-client"
 import { useAuth } from "@/lib/auth-context"
 
@@ -17,6 +15,9 @@ export default function LogView() {
   const [log, setLog] = useState(null)
   const [loadingLog, setLoadingLog] = useState(true)
   const [error, setError] = useState(null)
+  const [previewImage, setPreviewImage] = useState(null) // 当前预览的图片索引
+  const [touchStartPos, setTouchStartPos] = useState(0) // 触摸开始位置
+  const [touchEndPos, setTouchEndPos] = useState(0) // 触摸结束位置
 
 
   // 如果未登录，重定向到登录页面
@@ -134,6 +135,33 @@ export default function LogView() {
         alert('删除失败，请重试')
       }
     }
+  }
+
+  // 手势处理函数
+  const handleTouchStart = (e) => {
+    setTouchStartPos(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchMove = (e) => {
+    setTouchEndPos(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchEnd = () => {
+    if (!touchStartPos || !touchEndPos) return
+    
+    const distance = touchStartPos - touchEndPos
+    const isLeftSwipe = distance > 50
+    const isRightSwipe = distance < -50
+
+    if (isLeftSwipe && log.images && previewImage < log.images.length - 1) {
+      setPreviewImage(previewImage + 1)
+    }
+    if (isRightSwipe && previewImage > 0) {
+      setPreviewImage(previewImage - 1)
+    }
+    
+    setTouchStartPos(0)
+    setTouchEndPos(0)
   }
 
   if (loadingLog) {
@@ -254,7 +282,7 @@ export default function LogView() {
             <div className="flex flex-wrap gap-2">
               {parseMoods(log.mood).map((moodId, index) => (
                 <span 
-                  key={index} 
+                  key={`${moodId}-${index}`} 
                   className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700 border border-gray-200"
                 >
                   {getMoodInfo(moodId).emoji} {getMoodInfo(moodId).name}
@@ -269,7 +297,11 @@ export default function LogView() {
           <div className="mb-8">
             <div className="grid grid-cols-1 gap-3">
               {log.images.map((image, index) => (
-                <div key={index} className="relative group">
+                <div 
+                  key={typeof image === 'object' && image.id ? image.id : index} 
+                  className="relative group cursor-pointer"
+                  onClick={() => setPreviewImage(index)}
+                >
                   <img
                     src={getImageUrl(image)}
                     alt={`日志图片 ${index + 1}`}
@@ -281,6 +313,65 @@ export default function LogView() {
                   />
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* 全屏图片预览 */}
+        {previewImage !== null && log.images && (
+          <div 
+            className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+            onClick={() => setPreviewImage(null)}
+          >
+            <div 
+              className="relative w-full h-full flex items-center justify-center"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              <img
+                src={getImageUrl(log.images[previewImage])}
+                alt={`日志图片 ${previewImage + 1}`}
+                className="max-w-full max-h-full object-contain"
+                onClick={(e) => e.stopPropagation()}
+              />
+              
+              {/* 关闭按钮 */}
+              <button
+                onClick={() => setPreviewImage(null)}
+                className="absolute top-4 right-4 bg-black/50 text-white rounded-full p-3 hover:bg-black/70 transition"
+              >
+                <X className="h-6 w-6" />
+              </button>
+
+              {/* 上一张/下一张按钮 */}
+              {log.images.length > 1 && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setPreviewImage(previewImage > 0 ? previewImage - 1 : log.images.length - 1)
+                    }}
+                    className="absolute left-4 bg-black/50 text-white rounded-full p-3 hover:bg-black/70 transition"
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setPreviewImage(previewImage < log.images.length - 1 ? previewImage + 1 : 0)
+                    }}
+                    className="absolute right-4 bg-black/50 text-white rounded-full p-3 hover:bg-black/70 transition"
+                  >
+                    <ChevronRight className="h-6 w-6" />
+                  </button>
+                  
+                  {/* 图片计数器 */}
+                  <div className="absolute bottom-4 bg-black/50 text-white px-4 py-2 rounded-full">
+                    {previewImage + 1} / {log.images.length}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
