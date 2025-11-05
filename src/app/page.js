@@ -53,7 +53,11 @@ export default function Home() {
     // 等待认证状态加载完成
     if (!loading) {
       if (isAuthenticated()) {
-        fetchRecentRecords()
+        // 使用 setTimeout 确保不阻塞 UI 渲染和事件处理
+        const timer = setTimeout(() => {
+          fetchRecentRecords()
+        }, 0)
+        return () => clearTimeout(timer)
       } else {
         // 在 useEffect 中处理路由跳转，避免渲染时调用
         router.push('/login')

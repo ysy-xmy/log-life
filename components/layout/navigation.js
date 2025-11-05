@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname, useSearchParams } from "next/navigation"
-import { Suspense, useState, useEffect } from "react"
+import { Suspense, useState, useEffect, useCallback } from "react"
 import { 
   BookOpen, 
   Calculator, 
@@ -78,10 +78,19 @@ function NavigationContent() {
     return false
   }
 
-  // 处理标签页切换
-  const handleTabClick = (href) => {
+  // 处理标签页切换 - 立即响应，不等待任何异步操作
+  const handleTabClick = useCallback((e, href) => {
+    if (e && e.type !== 'touchstart') {
+      // 只在非 touchstart 事件中调用 preventDefault
+      e.preventDefault()
+    }
+    if (e) {
+      e.stopPropagation()
+    }
+    console.log('Tab clicked:', href, 'Current activeTab:', activeTab)
+    // 立即更新状态，不等待任何操作
     setActiveTab(href)
-  }
+  }, [activeTab, setActiveTab])
 
   // 如果不是标签页路径（如 /login），隐藏导航栏
   const isTabPath = pathname === '/' || pathname === '/logs' || pathname === '/accounting' || 
@@ -99,7 +108,15 @@ function NavigationContent() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50">
+    <nav 
+      className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50"
+      style={{ 
+        touchAction: 'manipulation',
+        pointerEvents: 'auto',
+        // 确保导航栏始终可点击，不受其他元素影响
+        isolation: 'isolate'
+      }}
+    >
       <div className="w-full max-w-md mx-auto">
         <div className="flex items-center justify-around h-16">
           {navigationItems.map((item) => {
@@ -108,13 +125,21 @@ function NavigationContent() {
             return (
               <button
                 key={item.name}
-                onClick={() => handleTabClick(item.href)}
+                onClick={(e) => handleTabClick(e, item.href)}
                 className={cn(
-                  "flex flex-col items-center justify-center flex-1 py-2 transition-colors cursor-pointer",
+                  "flex flex-col items-center justify-center flex-1 py-2 transition-colors cursor-pointer touch-manipulation",
                   isActive
                     ? "text-gray-800"
                     : "text-gray-500 hover:text-gray-700"
                 )}
+                style={{
+                  WebkitTapHighlightColor: 'transparent',
+                  touchAction: 'manipulation',
+                  pointerEvents: 'auto',
+                  // 确保按钮可以立即响应点击
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                }}
               >
                 <Icon className={cn("h-5 w-5 mb-1", isActive && "text-gray-800")} />
                 <span className={cn("text-xs", isActive && "font-medium")}>
