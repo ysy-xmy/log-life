@@ -51,9 +51,8 @@ export async function GET(request, { params }) {
       )
     }
     
-    // 获取日志列表并找到指定ID的日志
-    const logs = await logService.getLogsWithAccounting(userId)
-    const log = logs.find(log => log.id === id)
+    // 直接根据ID获取日志（更高效且准确）
+    const log = await logService.getLogWithAccounting(id, userId)
     
     if (!log) {
       return NextResponse.json(
@@ -146,9 +145,8 @@ export async function PUT(request, { params }) {
       )
     }
     
-    // 获取当前日志信息
-    const logs = await logService.getLogsWithAccounting(userId)
-    const currentLog = logs.find(log => log.id === id)
+    // 获取当前日志信息（直接根据ID查询）
+    const currentLog = await logService.getLogWithAccounting(id, userId)
     
     if (!currentLog) {
       return NextResponse.json(
@@ -292,9 +290,8 @@ export async function DELETE(request, { params }) {
       )
     }
     
-    // 验证日志是否属于当前用户
-    const logs = await logService.getLogs(userId)
-    const log = logs.find(log => log.id === id)
+    // 验证日志是否属于当前用户（直接根据ID查询，更高效）
+    const log = await logService.getLogWithAccounting(id, userId)
     
     if (!log) {
       return NextResponse.json(

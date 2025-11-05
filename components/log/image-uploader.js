@@ -138,29 +138,35 @@ export default function ImageUploader({ images = [], onImagesChange, maxImages =
       </div>
       
       {/* 已上传的图片 */}
-      {images.length > 0 && (
-        <div className="grid grid-cols-3 gap-2">
-          {images.map((image) => (
-            <div key={image.id} className="relative group">
-              <img
-                src={getImageUrl(image)}
-                alt={image.name}
-                className="w-full h-20 object-cover rounded-xl"
-                onError={(e) => {
-                  console.error('图片上传器加载失败:', image.name, 'src:', e.target.src, 'image对象:', image)
-                  e.target.style.display = 'none'
-                }}
-              />
-              <button
-                onClick={() => removeImage(image.id)}
-                className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+      {images.length > 0 && (() => {
+        // 过滤掉 null 和无效的图片
+        const validImages = images.filter(img => img != null && img.id && getImageUrl(img) !== '')
+        if (validImages.length === 0) return null
+        
+        return (
+          <div className="grid grid-cols-3 gap-2">
+            {validImages.map((image) => (
+              <div key={image.id} className="relative group">
+                <img
+                  src={getImageUrl(image)}
+                  alt={image?.name || '图片'}
+                  className="w-full h-20 object-cover rounded-xl"
+                  onError={(e) => {
+                    console.error('图片上传器加载失败:', image?.name || '未知', 'src:', e.target.src, 'image对象:', image)
+                    e.target.style.display = 'none'
+                  }}
+                />
+                <button
+                  onClick={() => removeImage(image.id)}
+                  className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
 
       {/* 上传按钮 */}
       {images.length < maxImages && (

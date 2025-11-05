@@ -281,17 +281,40 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
       return cleanup
     }
 
-    // 延迟创建，确保 DOM 已更新
-    const timer = setTimeout(() => {
-      const target = observerTarget.current
-      if (!target) {
-        console.log('❌ IntersectionObserver 未创建：观察目标不存在')
-        return
-      }
+    // 如果正在加载初始数据，等待加载完成
+    if (isLoading) {
+      return
+    }
 
-      console.log('✅ 创建 IntersectionObserver，目标元素:', target, 'hasMore:', hasMoreRef.current)
-      
-      const observer = new IntersectionObserver(
+    // 如果还没有日志数据，等待数据加载
+    if (logs.length === 0) {
+      return
+    }
+
+    // 使用 requestAnimationFrame 确保 DOM 已渲染，然后延迟创建 observer
+    let retryCount = 0
+    const maxRetries = 10 // 最多重试10次（1秒）
+    let retryTimer = null
+    
+    const initObserver = () => {
+      requestAnimationFrame(() => {
+        const target = observerTarget.current
+        if (!target) {
+          retryCount++
+          if (retryCount < maxRetries) {
+            console.log(`❌ IntersectionObserver 未创建：观察目标不存在，等待重试 (${retryCount}/${maxRetries})`)
+            // 如果元素还不存在，再延迟一段时间重试
+            retryTimer = setTimeout(initObserver, 100)
+            return
+          } else {
+            console.error('❌ IntersectionObserver 创建失败：观察目标在多次重试后仍不存在')
+            return
+          }
+        }
+
+        console.log('✅ 创建 IntersectionObserver，目标元素:', target, 'hasMore:', hasMoreRef.current)
+        
+        const observer = new IntersectionObserver(
         async (entries) => {
           const entry = entries[0]
           console.log('🔍 IntersectionObserver 触发，isIntersecting:', entry.isIntersecting, 'intersectionRatio:', entry.intersectionRatio)
@@ -472,16 +495,23 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
         }
       )
 
-      observer.observe(target)
-      observerRef.current = observer
-      console.log('👀 IntersectionObserver 已观察')
-    }, 200) // 增加延迟，确保 DOM 完全渲染
+        observer.observe(target)
+        observerRef.current = observer
+        console.log('👀 IntersectionObserver 已观察')
+      })
+    }
+
+    // 延迟初始化，确保 DOM 已完全渲染
+    const timer = setTimeout(initObserver, 100)
 
     return () => {
       clearTimeout(timer)
+      if (retryTimer) {
+        clearTimeout(retryTimer)
+      }
       cleanup()
     }
-  }, [searchQuery, hasMore]) // 依赖 searchQuery 和 hasMore
+  }, [searchQuery, hasMore, isLoading, logs.length]) // 添加 isLoading 和 logs.length 依赖，确保数据加载完成后再初始化
 
   const handleDelete = async (logId) => {
     if (confirm('确定要删除这条日志吗？')) {
@@ -763,27 +793,33 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
                 {/* 图片预览和记账信息 */}
                 <div className="flex justify-between items-end">
                   {/* 图片预览 */}
-                  {log.images && log.images.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <img
-                        src={getImageUrl(log.images[0])}
-                        alt="日志图片预览"
-                        className="w-16 h-16 object-cover rounded-xl border border-gray-200"
-                        onError={(e) => {
-                          console.error('图片加载失败:', e.target.src)
-                          e.target.style.display = 'none'
-                        }}
-                      />
-                      {log.images.length > 1 && (
-                        <div className="flex items-center justify-center w-16 h-16 bg-gray-100 rounded-xl border border-gray-200">
-                          <div className="text-center">
-                            <ImageIcon className="h-4 w-4 text-gray-500 mx-auto mb-1" />
-                            <span className="text-xs text-gray-500">+{log.images.length - 1}</span>
+                  {log.images && log.images.length > 0 && (() => {
+                    // 过滤掉 null 和空值
+                    const validImages = log.images.filter(img => img != null && getImageUrl(img) !== '')
+                    if (validImages.length === 0) return null
+                    
+                    return (
+                      <div className="flex items-center gap-2">
+                        <img
+                          src={getImageUrl(validImages[0])}
+                          alt="日志图片预览"
+                          className="w-16 h-16 object-cover rounded-xl border border-gray-200"
+                          onError={(e) => {
+                            console.error('图片加载失败:', e.target.src)
+                            e.target.style.display = 'none'
+                          }}
+                        />
+                        {validImages.length > 1 && (
+                          <div className="flex items-center justify-center w-16 h-16 bg-gray-100 rounded-xl border border-gray-200">
+                            <div className="text-center">
+                              <ImageIcon className="h-4 w-4 text-gray-500 mx-auto mb-1" />
+                              <span className="text-xs text-gray-500">+{validImages.length - 1}</span>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        )}
+                      </div>
+                    )
+                  })()}
                   
                   {/* 记账信息 */}
                   {log.accounting && (

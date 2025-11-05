@@ -49,7 +49,22 @@ const LogForm = forwardRef(function LogForm({ onSave, initialData = null }, ref)
     console.log('LogForm初始化 - 解析后心情数据:', parsed)
     return parsed
   })
-  const [images, setImages] = useState(initialData?.images || [])
+  // 过滤无效图片的辅助函数
+  const filterValidImages = (imageArray) => {
+    if (!Array.isArray(imageArray)) return []
+    return imageArray.filter(img => {
+      if (img == null) return false
+      // 如果是字符串（base64），直接接受
+      if (typeof img === 'string' && img.trim() !== '') return true
+      // 如果是对象，必须有 id 或 url
+      if (typeof img === 'object') {
+        return !!(img.id || img.url)
+      }
+      return false
+    })
+  }
+  
+  const [images, setImages] = useState(() => filterValidImages(initialData?.images || []))
   const [isSaving, setIsSaving] = useState(false)
   
   // 心情选择相关状态
@@ -90,7 +105,7 @@ const LogForm = forwardRef(function LogForm({ onSave, initialData = null }, ref)
         console.log('编辑日志 - 原始心情数据:', moodData)
         console.log('编辑日志 - 解析后心情数据:', parsedMoods)
         setMoods(parsedMoods)
-        setImages(initialData.images || [])
+        setImages(filterValidImages(initialData.images || []))
         
         // 处理记账信息回显
         if (initialData.accounting) {
@@ -481,33 +496,55 @@ const LogForm = forwardRef(function LogForm({ onSave, initialData = null }, ref)
       </div>
 
       {/* 已上传的图片预览 */}
-      {images.length > 0 && (
-        <div className="grid grid-cols-3 gap-2">
-          {images.map((image) => {
-            console.log('渲染图片:', image) // 调试日志
-            return (
-              <div key={image.id} className="relative group">
-                <img
-                  src={getImageUrl(image)}
-                  alt={image.name}
-                  className="w-40 h-40 object-cover rounded-xl"
-                  onLoad={() => console.log('图片加载成功:', image.name)}
-                  onError={(e) => {
-                    console.error('图片加载失败:', image.name, 'src:', e.target.src, 'image对象:', image)
-                    e.target.style.display = 'none'
-                  }}
-                />
-                <button
-                  onClick={() => setImages(images.filter(img => img.id !== image.id))}
-                  className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            )
-          })}
-        </div>
-      )}
+      {images.length > 0 && (() => {
+        // 过滤掉 null 和无效的图片，使用 getImageUrl 判断是否有效，并保留原始索引
+        const validImagesWithIndex = images
+          .map((img, originalIndex) => ({ img, originalIndex }))
+          .filter(({ img }) => {
+            if (img == null) return false
+            const url = getImageUrl(img)
+            return url !== '' && url.trim() !== ''
+          })
+        
+        if (validImagesWithIndex.length === 0) return null
+        
+        return (
+          <div className="grid grid-cols-3 gap-2">
+            {validImagesWithIndex.map(({ img: image, originalIndex }, displayIndex) => {
+              console.log('渲染图片:', image) // 调试日志
+              // 为字符串类型的图片生成一个 key，使用索引作为后备
+              const imageKey = typeof image === 'string' ? `img-${originalIndex}-${image.slice(0, 20)}` : (image.id || `img-${originalIndex}`)
+              return (
+                <div key={imageKey} className="relative group">
+                  <img
+                    src={getImageUrl(image)}
+                    alt={typeof image === 'object' ? (image?.name || '图片') : '图片'}
+                    className="w-40 h-40 object-cover rounded-xl"
+                    onLoad={() => console.log('图片加载成功:', typeof image === 'object' ? (image?.name || '未知') : 'base64图片')}
+                    onError={(e) => {
+                      console.error('图片加载失败:', typeof image === 'object' ? (image?.name || '未知') : 'base64图片', 'src:', e.target.src, 'image对象:', image)
+                      e.target.style.display = 'none'
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      // 对于字符串类型，使用原始索引删除；对于对象类型，使用 id 删除
+                      if (typeof image === 'string') {
+                        setImages(images.filter((_, i) => i !== originalIndex))
+                      } else {
+                        setImages(images.filter(img => img?.id !== image.id))
+                      }
+                    }}
+                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )
+      })()}
 
 
       {/* 记账功能 */}
