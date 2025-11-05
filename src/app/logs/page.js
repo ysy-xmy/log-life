@@ -5,9 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import LogForm from "@/components/log/log-form"
 import LogList from "@/components/log/log-list"
+import LogView from "@/components/log/log-view"
 import { Plus, X, Search, User } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { usePreventScroll } from "@/lib/use-prevent-scroll"
+import { logsApi } from "@/lib/api-client"
 import Link from "next/link"
 
 function LogsPageContent() {
@@ -19,77 +21,14 @@ function LogsPageContent() {
   const [searchQuery, setSearchQuery] = useState("")
   const [showLogForm, setShowLogForm] = useState(false)
   const [newLog, setNewLog] = useState(null)
+  const [viewingLog, setViewingLog] = useState(null) // 当前查看的日志
   const logFormRef = useRef(null)
   const listContainerRef = useRef(null)
-  const [shouldRestoreScroll, setShouldRestoreScroll] = useState(false)
   const editingLogIdRef = useRef(null) // 使用 ref 跟踪当前编辑的日志ID，避免循环
   const isClosingRef = useRef(false) // 标记是否正在关闭表单，避免闪烁
 
   // 启用全局防滚动穿透功能
   usePreventScroll(true)
-
-  // 保存滚动位置
-  useEffect(() => {
-    const container = listContainerRef.current
-    if (!container) return
-
-    const handleScroll = () => {
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('logsScrollPosition', container.scrollTop.toString())
-      }
-    }
-
-    container.addEventListener('scroll', handleScroll, { passive: true })
-    
-    return () => {
-      container.removeEventListener('scroll', handleScroll)
-    }
-  }, [])
-
-  // 检查是否需要恢复滚动位置（仅在非刷新时）
-  useEffect(() => {
-    // 检查是否有刷新标记（从编辑保存返回）
-    const needsRefresh = searchParams.get('refresh') === 'true'
-    
-    if (needsRefresh) {
-      // 清除刷新标记，同时清除保存的滚动位置（因为需要刷新）
-      if (typeof window !== 'undefined') {
-        sessionStorage.removeItem('logsScrollPosition')
-      }
-      router.replace('/logs', { scroll: false })
-      setShouldRestoreScroll(false)
-      // 需要刷新时，不恢复滚动位置
-      return
-    }
-
-    // 标记需要恢复滚动位置
-    if (typeof window !== 'undefined') {
-      const savedPosition = sessionStorage.getItem('logsScrollPosition')
-      if (savedPosition) {
-        setShouldRestoreScroll(true)
-      }
-    }
-  }, [router, searchParams, refreshKey])
-
-  // 实际恢复滚动位置（等待列表加载完成）
-  useEffect(() => {
-    if (!shouldRestoreScroll) return
-
-    const container = listContainerRef.current
-    if (container && typeof window !== 'undefined') {
-      const savedPosition = sessionStorage.getItem('logsScrollPosition')
-      if (savedPosition) {
-        // 延迟恢复，确保DOM已渲染和列表已加载
-        const timer = setTimeout(() => {
-          if (container) {
-            container.scrollTop = parseInt(savedPosition, 10)
-            setShouldRestoreScroll(false) // 恢复完成后清除标记
-          }
-        }, 300)
-        return () => clearTimeout(timer)
-      }
-    }
-  }, [shouldRestoreScroll, refreshKey])
 
   const handleLogEdit = useCallback(async (log, updateUrl = true) => {
     // 如果正在关闭，不执行编辑操作
@@ -237,7 +176,7 @@ function LogsPageContent() {
   }
 
   const handleLogView = (log) => {
-    router.push(`/log/${log.id}`)
+    setViewingLog(log)
   }
 
   // 如果正在加载认证状态
@@ -262,46 +201,49 @@ function LogsPageContent() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* 顶部标题和搜索 */}
-      <div className="flex-shrink-0 bg-white border-b border-gray-100 px-4 py-3">
-        <div className="flex items-center justify-between mb-3">
-          <h1 className="text-xl font-semibold text-gray-800">生活日志</h1>
-          <Button 
-            onClick={handleNewLog}
-            className="bg-gray-800 hover:bg-gray-700 text-white rounded-full h-10 px-4"
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            写记录
-          </Button>
+      {/* 日志列表 - 当查看详情时隐藏 */}
+      <div style={{ display: viewingLog ? 'none' : 'flex' }} className="h-full flex flex-col">
+        {/* 顶部标题和搜索 */}
+        <div className="flex-shrink-0 bg-white border-b border-gray-100 px-4 py-3">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-xl font-semibold text-gray-800">生活日志</h1>
+            <Button 
+              onClick={handleNewLog}
+              className="bg-gray-800 hover:bg-gray-700 text-white rounded-full h-10 px-4"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              写记录
+            </Button>
+          </div>
+          
+          {/* 搜索框 */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="搜索日志内容..."
+              value={searchQuery}
+              style={{
+                border: 'none',
+                boxShadow: 'none',
+              }}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-gray-50 rounded-full text-sm border-0 focus:outline-none focus:ring-2 focus:ring-gray-200"
+            />
+          </div>
         </div>
-        
-        {/* 搜索框 */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="搜索日志内容..."
-            value={searchQuery}
-            style={{
-              border: 'none',
-              boxShadow: 'none',
-            }}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 rounded-full text-sm border-0 focus:outline-none focus:ring-2 focus:ring-gray-200"
+
+        {/* 日志列表 - 使用flex-1让列表区域自适应剩余高度 */}
+        <div ref={listContainerRef} className="flex-1 overflow-y-auto px-4 py-4 scrollbar-hide">
+          <LogList 
+            onEdit={handleLogEdit}
+            onDelete={handleLogDelete}
+            onView={handleLogView}
+            searchQuery={searchQuery}
+            refreshKey={refreshKey}
+            newLog={newLog}
           />
         </div>
-      </div>
-
-      {/* 日志列表 - 使用flex-1让列表区域自适应剩余高度 */}
-      <div ref={listContainerRef} className="flex-1 overflow-y-auto px-4 py-4 scrollbar-hide">
-        <LogList 
-          onEdit={handleLogEdit}
-          onDelete={handleLogDelete}
-          onView={handleLogView}
-          searchQuery={searchQuery}
-          refreshKey={refreshKey}
-          newLog={newLog}
-        />
       </div>
 
       {/* 写日志表单 - 全屏高度，PC端限制宽度 */}
@@ -343,6 +285,36 @@ function LogsPageContent() {
             />
           </div>
         </div>
+      )}
+
+      {/* 日志详情视图 */}
+      {viewingLog && (
+        <LogView
+          log={viewingLog}
+          user={user}
+          onBack={() => setViewingLog(null)}
+          onEdit={(log) => {
+            setViewingLog(null)
+            handleLogEdit(log)
+          }}
+          onDelete={async (log) => {
+            if (confirm('确定要删除这条日志吗？')) {
+              try {
+                const response = await logsApi.deleteLog(log.id)
+                if (response.success) {
+                  setViewingLog(null)
+                  handleLogDelete()
+                  alert('删除成功')
+                } else {
+                  alert('删除失败：' + response.error)
+                }
+              } catch (error) {
+                console.error('删除日志失败:', error)
+                alert('删除失败，请重试')
+              }
+            }
+          }}
+        />
       )}
     </div>
   )

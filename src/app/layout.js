@@ -1,5 +1,5 @@
 import "./globals.css";
-import Navigation from "@/components/layout/navigation";
+import TabContainer from "@/components/layout/tab-container";
 import { AuthProvider } from "@/lib/auth-context";
 import { CacheProvider } from "@/lib/cache-context";
 import LayoutWrapper from "@/components/layout/layout-wrapper";
@@ -24,10 +24,11 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <CacheProvider>
             <DisablePullRefresh />
-            <LayoutWrapper>
-              {children}
-            </LayoutWrapper>
-            <Navigation />
+            <TabContainer>
+              <LayoutWrapper>
+                {children}
+              </LayoutWrapper>
+            </TabContainer>
           </CacheProvider>
         </AuthProvider>
       </body>

@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import { Suspense, useState, useEffect } from "react"
 import { 
@@ -11,6 +10,7 @@ import {
   Plus
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useTab } from "./tab-container"
 
 const navigationItems = [
   {
@@ -44,6 +44,9 @@ function NavigationContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [isClient, setIsClient] = useState(false)
+  
+  // 获取 tab context
+  const { activeTab, setActiveTab } = useTab()
 
   // 确保在客户端环境中
   useEffect(() => {
@@ -75,6 +78,21 @@ function NavigationContent() {
     return false
   }
 
+  // 处理标签页切换
+  const handleTabClick = (href) => {
+    setActiveTab(href)
+  }
+
+  // 如果不是标签页路径（如 /login），隐藏导航栏
+  const isTabPath = pathname === '/' || pathname === '/logs' || pathname === '/accounting' || 
+                    pathname === '/statistics' || pathname === '/profile' ||
+                    pathname.startsWith('/logs') || pathname.startsWith('/accounting') ||
+                    pathname.startsWith('/statistics') || pathname.startsWith('/profile')
+
+  if (!isTabPath) {
+    return null
+  }
+
   // 如果需要隐藏导航栏，返回null
   if (shouldHideNavigation()) {
     return null
@@ -86,13 +104,13 @@ function NavigationContent() {
         <div className="flex items-center justify-around h-16">
           {navigationItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.href
+            const isActive = activeTab === item.href
             return (
-              <Link
+              <button
                 key={item.name}
-                href={item.href}
+                onClick={() => handleTabClick(item.href)}
                 className={cn(
-                  "flex flex-col items-center justify-center flex-1 py-2 transition-colors",
+                  "flex flex-col items-center justify-center flex-1 py-2 transition-colors cursor-pointer",
                   isActive
                     ? "text-gray-800"
                     : "text-gray-500 hover:text-gray-700"
@@ -102,7 +120,7 @@ function NavigationContent() {
                 <span className={cn("text-xs", isActive && "font-medium")}>
                   {item.name}
                 </span>
-              </Link>
+              </button>
             )
           })}
         </div>

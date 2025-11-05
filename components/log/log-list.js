@@ -94,13 +94,25 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
       if (response.success) {
         if (reset) {
         setLogs(response.data)
-        setCachedData('logs', response.data, false) // 更新缓存
+        // 更新缓存，保存分页信息
+        const nextPage = response.pagination?.hasMore ? 2 : 1
+        setCachedData('logs', response.data, false, {
+          loadedPage: 1,
+          hasMore: response.pagination?.hasMore ?? true
+        })
         } else {
           // 去重：只添加不存在于当前列表中的日志
           setLogs(prev => {
             const existingIds = new Set(prev.map(log => log.id))
             const newLogs = response.data.filter(log => !existingIds.has(log.id))
-            return [...prev, ...newLogs]
+            const updatedLogs = [...prev, ...newLogs]
+            // 更新缓存，保存所有已加载的数据和分页信息
+            const nextPage = response.pagination?.hasMore ? currentPage + 1 : currentPage
+            setCachedData('logs', updatedLogs, false, {
+              loadedPage: currentPage,
+              hasMore: response.pagination?.hasMore ?? true
+            })
+            return updatedLogs
           })
         }
         
@@ -125,7 +137,7 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
         console.error('获取日志失败:', response.error)
         if (reset) {
         setLogs([])
-        setCachedData('logs', [], false)
+        setCachedData('logs', [], false, { loadedPage: 1, hasMore: true })
         }
       }
     } catch (error) {
@@ -169,7 +181,14 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
           const existingIds = new Set(prev.map(log => log.id))
           const newLogs = response.data.filter(log => !existingIds.has(log.id))
           addedNewLogs = newLogs.length > 0
-          return [...prev, ...newLogs]
+          const updatedLogs = [...prev, ...newLogs]
+          // 更新缓存，保存所有已加载的数据和分页信息
+          const nextPage = response.pagination?.hasMore ? currentPage + 1 : currentPage
+          setCachedData('logs', updatedLogs, false, {
+            loadedPage: currentPage,
+            hasMore: response.pagination?.hasMore ?? true
+          })
+          return updatedLogs
         })
         
         // 更新分页信息
@@ -235,14 +254,17 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
       const needRefresh = shouldRefresh('logs')
       
       // 只有在需要重置时才检查缓存和使用缓存
-      if (shouldReset && currentCachedData.data.length > 0 && !needRefresh && refreshKey === 0 && !searchQuery.trim()) {
-        console.log('💾 使用缓存数据，数量:', currentCachedData.data.length)
+      // 如果 refreshKey > 0，说明需要强制刷新，不使用缓存
+      if (shouldReset && refreshKey === 0 && currentCachedData.data.length > 0 && !needRefresh && !searchQuery.trim()) {
+        console.log('💾 使用缓存数据，数量:', currentCachedData.data.length, '已加载页码:', currentCachedData.loadedPage, 'hasMore:', currentCachedData.hasMore)
         setLogs(currentCachedData.data)
-        // 使用缓存时，需要设置页码为2（因为已加载第1页数据）
-        pageRef.current = 2
-        setPage(2)
-        hasMoreRef.current = true
-        setHasMore(true)
+        // 从缓存恢复分页信息
+        const cachedPage = currentCachedData.loadedPage || 1
+        const nextPage = cachedPage + 1
+        pageRef.current = nextPage
+        setPage(nextPage)
+        hasMoreRef.current = currentCachedData.hasMore !== false
+        setHasMore(currentCachedData.hasMore !== false)
         setLoading(false)
         return
       }
@@ -376,6 +398,11 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
                   
                   const result = [...prev, ...newLogs]
                   console.log('📋 更新后总数:', result.length, '条')
+                  // 更新缓存
+                  setCachedData('logs', result, false, {
+                    loadedPage: correctedPage,
+                    hasMore: response.pagination?.hasMore ?? true
+                  })
                   return result
                 })
                 
@@ -454,6 +481,11 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
                 
                 const result = [...prev, ...newLogs]
                 console.log('📋 更新后总数:', result.length, '条')
+                // 更新缓存
+                setCachedData('logs', result, false, {
+                  loadedPage: currentPage,
+                  hasMore: response.pagination?.hasMore ?? true
+                })
                 return result
               })
               
