@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Upload, X, Image as ImageIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -8,6 +8,13 @@ import { cn } from "@/lib/utils"
 export default function ImageUploader({ images = [], onImagesChange, maxImages = 9 }) {
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef(null)
+  // 使用 ref 跟踪最新的 images，避免闭包问题
+  const imagesRef = useRef(images)
+
+  // 当 images prop 变化时，更新 ref
+  useEffect(() => {
+    imagesRef.current = images
+  }, [images])
 
   // 获取图片URL，支持base64和普通URL
   const getImageUrl = (image) => {
@@ -38,66 +45,160 @@ export default function ImageUploader({ images = [], onImagesChange, maxImages =
   }
 
   // 图片压缩函数
-  const compressImage = (file, callback) => {
+  const compressImage = (file, callback, onError) => {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
     const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
     
     img.onload = () => {
-      // 计算压缩后的尺寸
-      const maxWidth = 1200
-      const maxHeight = 1200
-      let { width, height } = img
-      
-      if (width > height) {
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width
-          width = maxWidth
+      try {
+        // 计算压缩后的尺寸
+        const maxWidth = 1200
+        const maxHeight = 1200
+        let { width, height } = img
+        
+        if (width > height) {
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width
+            width = maxWidth
+          }
+        } else {
+          if (height > maxHeight) {
+            width = (width * maxHeight) / height
+            height = maxHeight
+          }
         }
-      } else {
-        if (height > maxHeight) {
-          width = (width * maxHeight) / height
-          height = maxHeight
+        
+        canvas.width = width
+        canvas.height = height
+        
+        // 绘制压缩后的图片
+        ctx.drawImage(img, 0, 0, width, height)
+        
+        // 转换为base64，质量设置为0.8
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8)
+        
+        // 释放对象URL
+        URL.revokeObjectURL(objectUrl)
+        
+        callback(compressedDataUrl)
+      } catch (error) {
+        // 释放对象URL
+        URL.revokeObjectURL(objectUrl)
+        console.error('图片压缩处理失败:', error)
+        if (onError) {
+          onError(error)
+        } else {
+          callback(null)
         }
       }
-      
-      canvas.width = width
-      canvas.height = height
-      
-      // 绘制压缩后的图片
-      ctx.drawImage(img, 0, 0, width, height)
-      
-      // 转换为base64，质量设置为0.8
-      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8)
-      callback(compressedDataUrl)
     }
     
-    img.src = URL.createObjectURL(file)
+    img.onerror = (error) => {
+      // 释放对象URL
+      URL.revokeObjectURL(objectUrl)
+      console.error('图片加载失败:', error)
+      if (onError) {
+        onError(new Error(`图片 ${file.name} 加载失败`))
+      } else {
+        callback(null)
+      }
+    }
+    
+    img.src = objectUrl
   }
 
   const handleFileSelect = (files) => {
-    const newFiles = Array.from(files).slice(0, maxImages - images.length)
+    // 使用 ref 获取最新的 images，避免闭包问题
+    const currentImages = imagesRef.current
+    const newFiles = Array.from(files).slice(0, maxImages - currentImages.length)
     
-    newFiles.forEach(file => {
-      if (file.type.startsWith('image/')) {
-        // 验证文件大小（限制为5MB）
-        if (file.size > 20 * 1024 * 1024) {
-          alert(`图片 ${file.name} 太大，请选择小于5MB的图片`)
+    // 收集所有需要处理的文件
+    const filesToProcess = newFiles.filter(file => {
+      if (!file.type.startsWith('image/')) {
+        return false
+      }
+      
+      // 验证文件大小（限制为20MB）
+      if (file.size > 20 * 1024 * 1024) {
+        alert(`图片 ${file.name} 太大，请选择小于20MB的图片`)
+        return false
+      }
+      
+      return true
+    })
+    
+    if (filesToProcess.length === 0) return
+    
+    // 使用 Promise 来处理所有文件的压缩
+    const compressionPromises = filesToProcess.map((file, index) => {
+      return new Promise((resolve, reject) => {
+        compressImage(
+          file,
+          (compressedDataUrl) => {
+            if (!compressedDataUrl) {
+              reject(new Error(`图片 ${file.name} 压缩失败`))
+              return
+            }
+            
+            const newImage = {
+              id: Date.now() + Math.random() + index * 1000 + Math.random() * file.size, // 更唯一的ID，确保多文件同时上传时不会重复
+              file: file,
+              url: compressedDataUrl,
+              name: file.name
+            }
+            resolve(newImage)
+          },
+          (error) => {
+            reject(error || new Error(`图片 ${file.name} 处理失败`))
+          }
+        )
+      })
+    })
+    
+    // 等待所有压缩完成后，统一更新状态
+    // 使用 allSettled 而不是 all，这样即使部分图片失败，成功的图片也能被添加
+    Promise.allSettled(compressionPromises)
+      .then(results => {
+        // 收集成功压缩的图片
+        const compressedImages = []
+        const errors = []
+        
+        results.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            const image = result.value
+            if (image && image.id && image.url) {
+              compressedImages.push(image)
+            }
+          } else {
+            errors.push({
+              file: filesToProcess[index]?.name || `文件 ${index + 1}`,
+              error: result.reason
+            })
+            console.error(`图片 ${filesToProcess[index]?.name || index + 1} 处理失败:`, result.reason)
+          }
+        })
+        
+        // 如果有错误，提示用户
+        if (errors.length > 0 && compressedImages.length === 0) {
+          alert(`所有图片处理失败：${errors.map(e => e.file).join('、')}`)
           return
+        } else if (errors.length > 0) {
+          alert(`部分图片处理失败：${errors.map(e => e.file).join('、')}，已成功添加 ${compressedImages.length} 张图片`)
         }
         
-        // 压缩图片
-        compressImage(file, (compressedDataUrl) => {
-          const newImage = {
-            id: Date.now() + Math.random(),
-            file: file,
-            url: compressedDataUrl,
-            name: file.name
-          }
-          onImagesChange([...images, newImage])
-        })
-      }
-    })
+        // 如果有成功的图片，添加到列表中
+        if (compressedImages.length > 0) {
+          // 获取最新的 images（使用 ref 避免闭包问题）
+          const latestImages = imagesRef.current
+          const validLatestImages = (latestImages || []).filter(img => img != null && img.id)
+          const newImages = [...validLatestImages, ...compressedImages]
+          
+          // 使用最新值更新状态（由于我们使用 ref 跟踪最新值，可以直接更新）
+          onImagesChange(newImages)
+        }
+      })
   }
 
   const handleDrop = (e) => {
