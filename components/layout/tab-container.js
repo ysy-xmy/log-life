@@ -40,13 +40,9 @@ const isTabPath = (pathname) => {
 
 export default function TabContainer({ children }) {
   const pathname = usePathname()
-  // 从 pathname 初始化 activeTab，避免初始值为 '/' 时的问题
-  const [activeTab, setActiveTab] = useState(() => {
-    // 使用函数形式初始化，只在首次渲染时执行
-    if (typeof window === 'undefined') return '/'
-    const mainPath = getMainPath(pathname)
-    return isTabPath(pathname) && tabComponents[mainPath] ? mainPath : '/'
-  })
+  // 从 pathname 初始化 activeTab，确保服务器端和客户端一致
+  // 使用 '/' 作为默认值，然后在 useEffect 中根据 pathname 更新
+  const [activeTab, setActiveTab] = useState('/')
   const initializedRef = useRef(false)
 
   // 调试：监听 activeTab 变化
@@ -68,19 +64,25 @@ export default function TabContainer({ children }) {
     setActiveTab: handleSetActiveTab
   }), [activeTab, handleSetActiveTab])
 
-  // 初始化时，根据当前路径设置活动标签（只在首次加载时执行一次）
+  // 初始化或 pathname 变化时，同步更新 activeTab
   useEffect(() => {
-    if (!initializedRef.current && pathname) {
-      if (isTabPath(pathname)) {
-        const mainPath = getMainPath(pathname)
-        if (tabComponents[mainPath]) {
-          console.log('Initializing activeTab from pathname:', pathname, '->', mainPath)
-          setActiveTab(mainPath)
-        }
+    if (pathname && isTabPath(pathname)) {
+      const mainPath = getMainPath(pathname)
+      if (tabComponents[mainPath]) {
+        // 使用函数式更新，避免依赖 activeTab
+        setActiveTab(prev => {
+          if (prev !== mainPath) {
+            console.log('Syncing activeTab from pathname:', pathname, '->', mainPath)
+            return mainPath
+          }
+          return prev
+        })
       }
+    }
+    if (!initializedRef.current) {
       initializedRef.current = true
     }
-  }, [pathname]) // 依赖 pathname，但通过 initializedRef 确保只执行一次
+  }, [pathname]) // 只依赖 pathname，避免循环更新
 
   // 同步 URL（但不触发路由跳转，保持页面状态）
   useEffect(() => {

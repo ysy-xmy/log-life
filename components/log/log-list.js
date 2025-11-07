@@ -41,9 +41,11 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
     hasMoreRef.current = hasMore
   }, [hasMore])
   
-  // 从缓存获取数据
-  const cachedData = getCachedData('logs')
-  const [logs, setLogs] = useState(cachedData.data || [])
+  // 从缓存获取数据 - 使用函数形式初始化，避免在渲染时读取
+  const [logs, setLogs] = useState(() => {
+    const cachedData = getCachedData('logs')
+    return cachedData.data || []
+  })
   const [deletingLogId, setDeletingLogId] = useState(null)
 
   // 下拉刷新处理函数
@@ -60,19 +62,23 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
     isLoadingRef.current = isLoading
   }, [isLoading])
 
-  // 处理新日志添加
+  // 处理新日志添加 - 使用 useEffect 确保不在渲染时调用
   useEffect(() => {
     if (newLog) {
-      addToCache('logs', newLog)
-      // 去重：如果日志已存在则不再添加
-      setLogs(prev => {
-        const exists = prev.some(log => log.id === newLog.id)
-        if (exists) {
-          // 如果已存在，则更新该日志而不是添加
-          return prev.map(log => log.id === newLog.id ? newLog : log)
-        }
-        return [newLog, ...prev]
-      })
+      // 使用 setTimeout 确保在下一个事件循环中执行，避免在渲染时更新
+      const timer = setTimeout(() => {
+        addToCache('logs', newLog)
+        // 去重：如果日志已存在则不再添加
+        setLogs(prev => {
+          const exists = prev.some(log => log.id === newLog.id)
+          if (exists) {
+            // 如果已存在，则更新该日志而不是添加
+            return prev.map(log => log.id === newLog.id ? newLog : log)
+          }
+          return [newLog, ...prev]
+        })
+      }, 0)
+      return () => clearTimeout(timer)
     }
   }, [newLog, addToCache])
 
@@ -634,6 +640,25 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
     return ''
   }
 
+  // 生成抽象几何图形 SVG
+  const generateAbstractShape = (colors) => {
+    const shapes = []
+    const width = 80
+    const height = 80
+    
+    // 随机生成几个几何形状
+    shapes.push(`<circle cx="${width * 0.3}" cy="${height * 0.3}" r="${width * 0.2}" fill="${colors[0]}" opacity="0.8"/>`)
+    shapes.push(`<path d="M ${width * 0.7} ${height * 0.2} L ${width} ${height * 0.5} L ${width * 0.7} ${height * 0.8} Z" fill="${colors[1] || colors[0]}" opacity="0.8"/>`)
+    if (colors[2]) {
+      shapes.push(`<rect x="${width * 0.1}" y="${height * 0.6}" width="${width * 0.3}" height="${width * 0.3}" rx="8" fill="${colors[2]}" opacity="0.8"/>`)
+    }
+    if (colors[3]) {
+      shapes.push(`<ellipse cx="${width * 0.8}" cy="${height * 0.7}" rx="${width * 0.15}" ry="${width * 0.1}" fill="${colors[3]}" opacity="0.8"/>`)
+    }
+    
+    return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">${shapes.join('')}</svg>`
+  }
+
   // 按日期分组日志（去重）
   const groupLogsByDate = (logs) => {
     // 先按 ID 去重，保留最新的
@@ -729,153 +754,109 @@ export default function LogList({ onEdit, onDelete, searchQuery = "", refreshKey
   return (
     <div ref={containerRef} className="space-y-6 scrollbar-hide">
       {refreshIndicator}
-      {Object.entries(groupedLogs).map(([dateKey, dateLogs], index) => (
-        <div key={dateKey} className="space-y-4">
+      {Object.entries(groupedLogs).map(([dateKey, dateLogs], dateIndex) => (
+        <div key={dateKey} className="space-y-3">
           {/* 日期分割线 */}
-          {index > 0 && (
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <div className="relative flex justify-center">
-                <span className="bg-white px-3 text-sm font-medium text-gray-500">{dateKey}</span>
-              </div>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
             </div>
-          )}
-          
-          {/* 第一个日期标题 */}
-          {index === 0 && (
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <div className="relative flex justify-center">
-                <span className="bg-white px-3 text-sm font-medium text-gray-500">{dateKey}</span>
-              </div>
+            <div className="relative flex justify-center">
+              <span className="bg-white px-3 text-sm font-medium text-gray-500">{dateKey}</span>
             </div>
-          )}
+          </div>
 
           {/* 该日期的日志列表 */}
           <div className="space-y-3">
-            {dateLogs.map((log, index) => (
-              <div 
-                key={log.id} 
-                className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => onView && onView(log)}
-              >
-                {/* 头部信息 */}
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center">
-                      <Calendar className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">
+            {dateLogs.map((log, logIndex) => {
+              // 生成抽象几何图形的颜色组合
+              const colorSchemes = [
+                ['#1e40af', '#f97316', '#eab308'], // 深蓝、橙、黄
+                ['#a855f7', '#f97316', '#eab308'], // 紫、橙、黄
+                ['#1e40af', '#22c55e', '#f97316', '#eab308'], // 深蓝、绿、橙、黄
+              ]
+              const colorScheme = colorSchemes[logIndex % colorSchemes.length]
+              
+              return (
+                <div 
+                  key={log.id} 
+                  className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => onView && onView(log)}
+                >
+                  <div className="flex items-start gap-4">
+                    {/* 左侧内容 */}
+                    <div className="flex-1 min-w-0">
+                      {/* 标题 */}
+                      <h3 className="text-base font-bold text-gray-900 mb-2 line-clamp-2">
+                        {log.content}
+                      </h3>
+                      
+                      {/* 时间和心情 */}
+                      <div className="text-xs text-gray-500 mb-3">
                         {formatTime(log.created_at || log.createdAt)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex space-x-1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation() // 阻止事件冒泡到卡片点击
-                        onEdit && onEdit(log)
-                      }}
-                      className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation() // 阻止事件冒泡到卡片点击
-                        handleDelete(log.id)
-                      }}
-                      disabled={deletingLogId === log.id}
-                      className={`p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors ${
-                        deletingLogId === log.id ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      {deletingLogId === log.id ? (
-                        <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* 日志内容 */}
-                <div className="mb-3">
-                  <p className="text-gray-800 whitespace-pre-wrap leading-relaxed line-clamp-4">{log.content}</p>
-                </div>
-
-                {/* 心情标签 */}
-                {log.mood && (
-                  <div className="mb-3">
-                    <div className="flex flex-wrap gap-2">
-                      {parseMoods(log.mood).map((moodId, index) => (
-                        <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
-                          {getMoodInfo(moodId).emoji} {getMoodInfo(moodId).name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 图片预览和记账信息 */}
-                <div className="flex justify-between items-end">
-                  {/* 图片预览 */}
-                  {log.images && log.images.length > 0 && (() => {
-                    // 过滤掉 null 和空值
-                    const validImages = log.images.filter(img => img != null && getImageUrl(img) !== '')
-                    if (validImages.length === 0) return null
-                    
-                    return (
-                      <div className="flex items-center gap-2">
-                        <img
-                          src={getImageUrl(validImages[0])}
-                          alt="日志图片预览"
-                          className="w-16 h-16 object-cover rounded-xl border border-gray-200"
-                          onError={(e) => {
-                            console.error('图片加载失败:', e.target.src)
-                            e.target.style.display = 'none'
-                          }}
-                        />
-                        {validImages.length > 1 && (
-                          <div className="flex items-center justify-center w-16 h-16 bg-gray-100 rounded-xl border border-gray-200">
-                            <div className="text-center">
-                              <ImageIcon className="h-4 w-4 text-gray-500 mx-auto mb-1" />
-                              <span className="text-xs text-gray-500">+{validImages.length - 1}</span>
-                            </div>
+                        {log.mood && (
+                          <span className="ml-2">
+                            {parseMoods(log.mood).map((moodId, idx) => (
+                              <span key={idx} className="ml-1">{getMoodInfo(moodId).emoji}</span>
+                            ))}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* 记账信息 */}
+                      {log.accounting && (
+                        <div className="mb-3">
+                          <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold ${
+                            log.accounting.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                          }`}>
+                            {log.accounting.type === 'income' ? (
+                              <Plus className="h-3 w-3" />
+                            ) : (
+                              <Minus className="h-3 w-3" />
+                            )}
+                            <span>¥{log.accounting.amount.toFixed(0)}</span>
                           </div>
-                        )}
-                      </div>
-                    )
-                  })()}
-                  
-                  {/* 记账信息 */}
-                  {log.accounting && (
-                    <div className="flex ml-auto items-center space-x-2 rounded-lg px-3 py-2">
-                      <div className={`p-1 rounded-full ${log.accounting.type === 'income' ? 'bg-green-100' : 'bg-red-100'}`}>
-                        {log.accounting.type === 'income' ? (
-                          <Plus className="h-3 w-3 text-green-600" />
-                        ) : (
-                          <Minus className="h-3 w-3 text-red-600" />
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <div className={`text-sm font-semibold ${log.accounting.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                          {log.accounting.type === 'income' ? '+' : '-'}¥{log.accounting.amount.toFixed(0)}
                         </div>
-                        <div className="text-xs text-gray-500">
-                          {getAccountingCategoryInfo(log.accounting.type, log.accounting.category).name}
-                        </div>
-                      </div>
+                      )}
                     </div>
-                  )}
+                    
+                    {/* 右侧图片或抽象图形 */}
+                    <div className="flex-shrink-0">
+                      {(() => {
+                        const imageUrl = log.images && log.images.length > 0 ? getImageUrl(log.images[0]) : null
+                        if (imageUrl) {
+                          return (
+                            <div className="w-20 h-20 rounded-xl overflow-hidden relative">
+                              <img
+                                src={imageUrl}
+                                alt="日志图片"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.style.display = 'none'
+                                }}
+                              />
+                              {/* 如果图片加载失败，显示抽象图形 */}
+                              <div 
+                                className="w-full h-full absolute inset-0"
+                                style={{ display: 'none' }}
+                                dangerouslySetInnerHTML={{ __html: generateAbstractShape(colorScheme) }}
+                              />
+                            </div>
+                          )
+                        }
+                        // 如果没有图片，显示抽象几何图形
+                        return (
+                          <div 
+                            className="w-20 h-20 rounded-xl overflow-hidden"
+                            dangerouslySetInnerHTML={{ __html: generateAbstractShape(colorScheme) }}
+                          />
+                        )
+                      })()}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       ))}

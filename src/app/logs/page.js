@@ -6,14 +6,16 @@ import { Button } from "@/components/ui/button"
 import LogForm from "@/components/log/log-form"
 import LogList from "@/components/log/log-list"
 import LogView from "@/components/log/log-view"
-import { Plus, X, Search, User } from "lucide-react"
+import { Plus, X, Search, User, MessageCircle } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { useCache } from "@/lib/cache-context"
 import { usePreventScroll } from "@/lib/use-prevent-scroll"
 import { logsApi } from "@/lib/api-client"
 import Link from "next/link"
 
 function LogsPageContent() {
   const { user, isAuthenticated, loading } = useAuth()
+  const { getCachedData } = useCache()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [editingLog, setEditingLog] = useState(null)
@@ -199,42 +201,60 @@ function LogsPageContent() {
     )
   }
 
+  // 获取用户名
+  const getUserName = () => {
+    return user?.name || user?.email?.split('@')[0] || '用户'
+  }
+
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-white">
       {/* 日志列表 - 当查看详情时隐藏 */}
       <div style={{ display: viewingLog ? 'none' : 'flex' }} className="h-full flex flex-col">
-        {/* 顶部标题和搜索 */}
-        <div className="flex-shrink-0 bg-white border-b border-gray-100 px-4 py-3">
+        {/* 顶部标题和按钮 */}
+        <div className="flex-shrink-0 px-4 pt-4 pb-3">
           <div className="flex items-center justify-between mb-3">
-            <h1 className="text-xl font-semibold text-gray-800">生活日志</h1>
-            <Button 
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{getUserName()}的生活日志</h1>
+            </div>
+            <button
               onClick={handleNewLog}
-              className="bg-gray-800 hover:bg-gray-700 text-white rounded-full h-10 px-4"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-full font-semibold transition-colors shadow-sm flex-shrink-0"
             >
-              <Plus className="h-4 w-4 mr-1" />
               写记录
-            </Button>
+            </button>
           </div>
-          
-          {/* 搜索框 */}
+        </div>
+
+        {/* 日志列表标题 */}
+        <div className="flex-shrink-0 px-4 mb-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-gray-900">日志记录</h2>
+            <span className="text-sm text-gray-600">
+              {(() => {
+                const cachedData = getCachedData('logs')
+                const count = cachedData.data?.length || 0
+                return `${count} 条日志`
+              })()}
+            </span>
+          </div>
+        </div>
+
+        {/* 搜索框 */}
+        <div className="flex-shrink-0 px-4 mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
               placeholder="搜索日志内容..."
               value={searchQuery}
-              style={{
-                border: 'none',
-                boxShadow: 'none',
-              }}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 rounded-full text-sm border-0 focus:outline-none focus:ring-2 focus:ring-gray-200"
+              className="w-full pl-10 pr-4 py-2 bg-gray-100 rounded-full text-sm border-0 focus:outline-none focus:ring-2 focus:ring-gray-300"
             />
           </div>
         </div>
 
         {/* 日志列表 - 使用flex-1让列表区域自适应剩余高度 */}
-        <div ref={listContainerRef} className="flex-1 overflow-y-auto px-4 py-4 scrollbar-hide">
+        <div ref={listContainerRef} className="flex-1 overflow-y-auto px-4 pb-4 scrollbar-hide">
           <LogList 
             onEdit={handleLogEdit}
             onDelete={handleLogDelete}

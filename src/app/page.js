@@ -6,7 +6,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import LogForm from "@/components/log/log-form"
 import AccountingForm from "@/components/accounting/accounting-form"
-import { Plus, X, BookOpen, Calculator, Minus } from "lucide-react"
+import { Plus, X, BookOpen, Calculator, Minus, Search, Bell } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useCache } from "@/lib/cache-context"
 import { usePreventScroll } from "@/lib/use-prevent-scroll"
@@ -152,99 +152,95 @@ export default function Home() {
     )
   }
 
+  // 获取问候语
+  const getGreeting = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) return '早上好'
+    if (hour < 18) return '下午好'
+    return '晚上好'
+  }
+
+  // 获取用户名
+  const getUserName = () => {
+    return user?.name || user?.email?.split('@')[0] || '用户'
+  }
+
   return (
-    <div className="bg-gray-50 h-full flex flex-col">
-      {/* 大幅宣传区域 */}
-      <div className="px-4 py-12 flex-shrink-0">
-        <div className="max-w-md mx-auto text-center">
-          <div className="flex justify-center mb-6">
-            <img 
-              src="https://obscloud.ulearning.cn/resources/web/1760957036011360.png" 
-              className="w-32 h-32 object-cover rounded-full shadow-lg"
-              alt="产品形象"
-              loading="eager"
-              decoding="sync"
-            />
+    <div className="bg-gray-50 h-screen flex flex-col overflow-y-auto">
+      {/* 顶部问候区域 */}
+      <div className="px-4 pt-6 pb-4 flex-shrink-0 bg-white">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Hi, {getGreeting()} 👋
+            </h1>
+            <h2 className="text-2xl font-bold text-gray-900 mt-1">
+              {getUserName()}!
+            </h2>
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-3">Log Life</h1>
-          <p className="text-lg text-gray-600 mb-2">记录生活的每一天</p>
-          <p className="text-sm text-gray-500 mb-2">让每一天都值得回忆</p>
+          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <Bell className="h-6 w-6 text-gray-700" />
+          </button>
         </div>
+
+
       </div>
 
-      {/* 日期时间卡片 */}
-      <div className="px-4 py-2 flex-shrink-0">
-        <div className="bg-white rounded-2xl p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">📅</span>
-              </div>
-              <div>
-                <div className="text-lg font-semibold text-gray-800">
-                  {new Date().toLocaleDateString('zh-CN', { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </div>
-                <div className="text-sm text-gray-500">
-                  {new Date().toLocaleDateString('zh-CN', { 
-                    weekday: 'long' 
-                  })}
-                </div>
-              </div>
+      {/* 快捷入口 - 横向滚动卡片 */}
+      <div className="px-4 py-4 flex-shrink-0">
+        <h2 className="text-lg font-bold text-gray-900 mb-3">快捷功能</h2>
+        <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+          {/* 写日志卡片 */}
+          <div
+            onClick={() => setShowLogForm(true)}
+            className="flex-shrink-0 w-32 h-40 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl p-4 shadow-lg cursor-pointer hover:shadow-xl transition-all duration-200 flex flex-col items-center justify-center text-white"
+          >
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-3">
+              <BookOpen className="h-6 w-6" />
             </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-gray-800">
-                {new Date().toLocaleTimeString('zh-CN', { 
-                  hour: '2-digit', 
-                  minute: '2-digit',
-                  hour12: false 
-                })}
-              </div>
-              <div className="text-xs text-gray-500">
-                {new Date().getHours() < 12 ? '上午' : new Date().getHours() < 18 ? '下午' : '晚上'}
-              </div>
+            <div className="text-center">
+              <div className="font-bold text-lg mb-1">写日志</div>
+              <div className="text-xs opacity-90">记录生活</div>
             </div>
           </div>
+
+          {/* 记账卡片 */}
+          <div
+            onClick={() => setShowAccountingForm(true)}
+            className="flex-shrink-0 w-32 h-40 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-2xl p-4 shadow-lg cursor-pointer hover:shadow-xl transition-all duration-200 flex flex-col items-center justify-center text-white"
+          >
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-3">
+              <Calculator className="h-6 w-6" />
+            </div>
+            <div className="text-center">
+              <div className="font-bold text-lg mb-1">记账</div>
+              <div className="text-xs opacity-90">收支管理</div>
+            </div>
+          </div>
+
+          <div
+            onClick={() => router.push('/statistics')}
+            className="flex-shrink-0 w-32 h-40 bg-gradient-to-br from-purple-400 to-purple-600 rounded-2xl p-4 shadow-lg cursor-pointer hover:shadow-xl transition-all duration-200 flex flex-col items-center justify-center text-white"
+          >
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-3">
+              <BookOpen className="h-6 w-6" />
+            </div>
+            <div className="text-center">
+              <div className="font-bold text-lg mb-1">统计</div>
+              <div className="text-xs opacity-90">数据分析</div>
+            </div>
+          </div>
+
         </div>
       </div>
 
-      {/* 快捷入口按钮 */}
-      <div className="px-4 py-2 flex-shrink-0">
-        <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
-          {/* 写日志按钮 */}
-          <div className="text-center">
-            <button
-              onClick={() => setShowLogForm(true)}
-              className="w-full h-24 bg-gray-800 hover:bg-gray-700 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 flex flex-col items-center justify-center text-white group"
-            >
-              <BookOpen className="h-8 w-8 mb-1 group-hover:scale-110 transition-transform" />
-              <span className="text-sm font-semibold">写日志</span>
-            </button>
-          </div>
-
-          {/* 记账按钮 */}
-          <div className="text-center">
-            <button
-              onClick={() => setShowAccountingForm(true)}
-              className="w-full h-24 bg-gray-600 hover:bg-gray-500 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 flex flex-col items-center justify-center text-white group"
-            >
-              <Calculator className="h-8 w-8 mb-1 group-hover:scale-110 transition-transform" />
-              <span className="text-sm font-semibold">记账</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 最近日志 - 可滚动区域 */}
+      {/* 最近记录 - 可滚动区域 */}
       <div className="px-4 py-4 flex-1 overflow-y-auto">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-gray-800">最近记录</h2>
+          <h2 className="text-lg font-bold text-gray-900">最近记录</h2>
           <button 
             onClick={() => router.push('/logs')}
-            className="text-sm text-gray-500 hover:text-gray-700"
+            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
           >
             查看全部
           </button>
@@ -267,37 +263,21 @@ export default function Home() {
               return recentRecords.map((log) => (
               <div 
                 key={log.id}
-                className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer mb-3"
                 onClick={() => router.push(`/log/${log.id}`)}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-800 line-clamp-2">
+                <div className="flex items-start gap-4">
+                  {/* 左侧内容 */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base font-bold text-gray-900 mb-2 line-clamp-2">
                       {log.content}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-2">
+                    </h3>
+                    <div className="text-xs text-gray-500 mb-3">
                       {formatTime(log.created_at)}
                     </div>
-                  </div>
-                  <div className="ml-3 flex flex-col items-end space-y-2">
-                    {/* 记账金额显示在右上角 */}
-                    {log.accounting && (
-                      <div className="flex items-center space-x-1">
-                        <div className={`p-1 rounded-full ${log.accounting.type === 'income' ? 'bg-green-100' : 'bg-red-100'}`}>
-                          {log.accounting.type === 'income' ? (
-                            <Plus className="h-3 w-3 text-green-600" />
-                          ) : (
-                            <Minus className="h-3 w-3 text-red-600" />
-                          )}
-                        </div>
-                        <span className={`text-sm font-semibold ${log.accounting.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                          ¥{log.accounting.amount}
-                        </span>
-                      </div>
-                    )}
-                    {/* 心情显示 */}
+                    {/* 心情标签 */}
                     {log.mood && (
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-wrap gap-1 mb-2">
                         {parseMoods(log.mood).map((moodId, index) => (
                           <span key={index} className="text-lg">
                             {getMoodInfo(moodId).emoji}
@@ -305,7 +285,52 @@ export default function Home() {
                         ))}
                       </div>
                     )}
+                    {/* 记账信息 */}
+                    {log.accounting && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className={`px-3 py-1 rounded-lg ${log.accounting.type === 'income' ? 'bg-green-100' : 'bg-red-100'}`}>
+                          <div className="flex items-center gap-1">
+                            {log.accounting.type === 'income' ? (
+                              <Plus className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <Minus className="h-3 w-3 text-red-600" />
+                            )}
+                            <span className={`text-sm font-semibold ${log.accounting.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                              ¥{log.accounting.amount}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
+                  {/* 右侧图片预览 */}
+                  {log.images && log.images.length > 0 && (() => {
+                    const getImageUrl = (image) => {
+                      if (!image) return ''
+                      if (typeof image === 'string') return image
+                      if (typeof image === 'object' && image.url) return image.url
+                      return ''
+                    }
+                    
+                    const imageUrl = getImageUrl(log.images[0])
+                    if (!imageUrl) return null
+                    
+                    return (
+                      <div className="flex-shrink-0">
+                        <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500">
+                          <img
+                            src={imageUrl}
+                            alt="日志图片"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none'
+                              e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center"><div class="text-white text-2xl">📷</div></div>'
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
               ))

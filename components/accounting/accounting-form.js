@@ -109,7 +109,7 @@ const AccountingForm = forwardRef(function AccountingForm({ onSave, initialData 
               onClick={() => setType('expense')}
               className={`flex-1 flex items-center justify-center space-x-2 py-3 rounded-xl transition-colors ${
                 type === 'expense' 
-                  ? 'bg-red-500 text-white' 
+                  ? 'bg-blue-600 text-white' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -120,7 +120,7 @@ const AccountingForm = forwardRef(function AccountingForm({ onSave, initialData 
               onClick={() => setType('income')}
               className={`flex-1 flex items-center justify-center space-x-2 py-3 rounded-xl transition-colors ${
                 type === 'income' 
-                  ? 'bg-green-500 text-white' 
+                  ? 'bg-blue-600 text-white' 
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >

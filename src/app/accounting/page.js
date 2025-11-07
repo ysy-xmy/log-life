@@ -83,7 +83,7 @@ export default function AccountingPage() {
               {currentView === 'list' ? (
                 <button
                   onClick={handleAddNew}
-                  className="flex items-center space-x-2 bg-gray-800 text-white px-4 py-2 rounded-full hover:bg-gray-700 transition-colors"
+                  className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 transition-colors"
                 >
                   <Plus className="h-4 w-4" />
                   <span>记账</span>
@@ -95,7 +95,7 @@ export default function AccountingPage() {
                       accountingFormRef.current.handleSave()
                     }
                   }}
-                  className="flex items-center space-x-2 bg-gray-800 text-white px-4 py-2 rounded-full hover:bg-gray-700 transition-colors"
+                  className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 transition-colors"
                 >
                   <Save className="h-4 w-4" />
                   <span>{editingRecord ? '保存' : '确认'}</span>

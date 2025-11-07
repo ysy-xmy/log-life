@@ -247,7 +247,7 @@ export default function AccountingList({ onEdit, onDelete, refreshTrigger, newRe
               onClick={() => handleFilterTypeChange('all')}
               className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                 filterType === 'all'
-                  ? 'bg-gray-800 text-white'
+                  ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -257,7 +257,7 @@ export default function AccountingList({ onEdit, onDelete, refreshTrigger, newRe
               onClick={() => handleFilterTypeChange('income')}
               className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                 filterType === 'income'
-                  ? 'bg-green-500 text-white'
+                  ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -268,7 +268,7 @@ export default function AccountingList({ onEdit, onDelete, refreshTrigger, newRe
               onClick={() => handleFilterTypeChange('expense')}
               className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                 filterType === 'expense'
-                  ? 'bg-red-500 text-white'
+                  ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -286,7 +286,7 @@ export default function AccountingList({ onEdit, onDelete, refreshTrigger, newRe
               onClick={() => setFilterCategory('all')}
               className={`flex-shrink-0 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                 filterCategory === 'all'
-                  ? 'bg-gray-800 text-white'
+                  ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
